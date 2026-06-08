@@ -3,396 +3,2553 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ativar MetaTrader 5</title>
+<title>Portal IB — Vantage</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root{
-    --bg-deep:#02040a;
-    --bg-mid:#060b18;
-    --accent:#15e8a0;        /* verde renda */
-    --accent-soft:#0fbf86;
-    --accent-glow:rgba(21,232,160,.55);
-    --nebula-a:#0a2e4d;
-    --nebula-b:#1b1140;
-    --nebula-c:#06231c;
-    --text:#eaf4f0;
-    --text-dim:#8ba3a0;
-    --field-bg:rgba(255,255,255,.035);
-    --field-border:rgba(255,255,255,.10);
-    --err:#ff6b6b;
+  :root {
+    --bg: #0a0a0a;
+    --bg-soft: #121212;
+    --bg-card: #161616;
+    --border: #1f1f1f;
+    --border-strong: #2a2a2a;
+    --text: #f5f5f5;
+    --text-dim: #a3a3a3;
+    --text-muted: #6b6b6b;
+    --orange: #ff5722;
+    --orange-bright: #ff6b3d;
+    --orange-soft: rgba(255, 87, 34, 0.12);
+    --success: #10b981;
+    --warning: #f59e0b;
   }
 
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
-  body{
-    font-family:'Sora',sans-serif;
-    background:var(--bg-deep);
-    color:var(--text);
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    overflow-x:hidden;
-    position:relative;
-    padding:64px 28px;
-    -webkit-font-smoothing:antialiased;
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
   }
 
-  /* ====== FUNDO ESPACIAL ====== */
-  #space{position:fixed;inset:0;z-index:0;display:block}
+  .screen { display: none; min-height: 100vh; animation: fadeIn 0.4s ease; }
+  .screen.active { display: block; }
+  .screen.active.flex { display: flex; }
 
-  .nebula{
-    position:fixed;inset:-20%;z-index:0;pointer-events:none;
-    background:
-      radial-gradient(40% 50% at 22% 28%, var(--nebula-a) 0%, transparent 60%),
-      radial-gradient(45% 55% at 80% 22%, var(--nebula-b) 0%, transparent 62%),
-      radial-gradient(50% 50% at 65% 82%, var(--nebula-c) 0%, transparent 60%),
-      radial-gradient(60% 60% at 18% 88%, #11203f 0%, transparent 65%);
-    filter:blur(20px);
-    opacity:.85;
-    transition:transform .6s cubic-bezier(.2,.8,.2,1);
-    animation:drift 26s ease-in-out infinite alternate;
-  }
-  @keyframes drift{
-    0%{transform:scale(1.05) translate(0,0)}
-    100%{transform:scale(1.12) translate(-2%,-2%)}
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  .glow-orb{
-    position:fixed;z-index:0;border-radius:50%;pointer-events:none;
-    filter:blur(60px);opacity:.4;
+  /* ============ LOGIN (CENTRALIZADO) ============ */
+  #screen-login {
+    display: none;
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
   }
-  .glow-orb.one{width:380px;height:380px;background:var(--accent);top:-120px;right:-80px;opacity:.18;animation:pulse 9s ease-in-out infinite}
-  .glow-orb.two{width:300px;height:300px;background:#3b6dff;bottom:-100px;left:-60px;opacity:.16;animation:pulse 11s ease-in-out infinite 1s}
-  @keyframes pulse{0%,100%{transform:scale(1);opacity:.14}50%{transform:scale(1.18);opacity:.24}}
-
-  .grain{
-    position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.05;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  #screen-login.active {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+  #screen-login::before {
+    content: '';
+    position: absolute;
+    top: -20%; right: -10%;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, var(--orange-soft) 0%, transparent 60%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  #screen-login::after {
+    content: '';
+    position: absolute;
+    bottom: -20%; left: -10%;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(255, 87, 34, 0.06) 0%, transparent 60%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .login-container {
+    width: 100%;
+    max-width: 460px;
+    position: relative;
+    z-index: 2;
+  }
+  .top-logo { text-align: center; margin-bottom: 2.5rem; }
+  .top-logo .logo-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.75rem;
+  }
+  .logo-mark { width: 34px; height: 34px; }
+  .logo-mark svg { width: 100%; height: 100%; }
+  .top-logo .portal-tag {
+    display: inline-block;
+    padding: 0.3rem 0.85rem;
+    background: var(--orange-soft);
+    border: 1px solid rgba(255, 87, 34, 0.3);
+    color: var(--orange-bright);
+    border-radius: 100px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
   }
 
-  /* ====== CARD ====== */
-  .card{
-    position:relative;z-index:2;
-    width:100%;max-width:440px;
-    background:linear-gradient(160deg, rgba(14,22,34,.78), rgba(6,11,22,.72));
-    border:1px solid var(--field-border);
-    border-radius:26px;
-    padding:34px 36px 28px;
-    backdrop-filter:blur(22px) saturate(120%);
-    -webkit-backdrop-filter:blur(22px) saturate(120%);
-    box-shadow:
-      0 40px 90px -30px rgba(0,0,0,.8),
-      0 0 0 1px rgba(255,255,255,.02) inset,
-      0 1px 0 rgba(255,255,255,.06) inset;
-    opacity:0;transform:translateY(26px);
-    animation:rise .9s cubic-bezier(.16,1,.3,1) .15s forwards;
+  .login-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 2.5rem;
   }
-  @keyframes rise{to{opacity:1;transform:translateY(0)}}
+  .login-header { text-align: center; margin-bottom: 2rem; }
+  .login-header h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+  .login-header h1 em {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    color: var(--orange-bright);
+    font-weight: 400;
+  }
+  .login-header p { color: var(--text-dim); font-size: 0.95rem; }
 
-  .card::before{
-    content:"";position:absolute;inset:0;border-radius:26px;padding:1px;
-    background:linear-gradient(140deg, var(--accent-glow), transparent 38%, transparent 70%, rgba(59,109,255,.4));
-    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-    -webkit-mask-composite:xor;mask-composite:exclude;
-    opacity:.6;pointer-events:none;
+  .form-group { margin-bottom: 1.25rem; }
+  .form-group label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+  .form-group input {
+    width: 100%;
+    padding: 0.95rem 1rem;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus { outline: none; border-color: var(--orange); }
+
+  .form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.75rem;
+    font-size: 0.88rem;
+  }
+  .remember {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  .remember input { accent-color: var(--orange); }
+  .forgot { color: var(--orange-bright); text-decoration: none; }
+
+  .btn-submit {
+    width: 100%;
+    padding: 1rem;
+    background: var(--orange);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 1.5rem;
+  }
+  .btn-submit:hover {
+    background: var(--orange-bright);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(255, 87, 34, 0.3);
+  }
+  .signup-line { text-align: center; color: var(--text-dim); font-size: 0.9rem; }
+  .signup-line a { color: var(--orange-bright); text-decoration: none; font-weight: 500; }
+
+  .login-footer {
+    text-align: center;
+    margin-top: 2rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
   }
 
-  .badge{
-    display:inline-flex;align-items:center;gap:8px;
-    font-size:11px;letter-spacing:.18em;text-transform:uppercase;
-    color:var(--accent);font-weight:600;
-    padding:7px 14px;border-radius:100px;
-    background:rgba(21,232,160,.08);
-    border:1px solid rgba(21,232,160,.22);
-    margin-bottom:16px;
+  /* ============ ESTRUTURA INTERNA (sidebar + main) ============ */
+  .sidebar {
+    width: 280px;
+    background: var(--bg-soft);
+    border-right: 1px solid var(--border);
+    padding: 2rem 1.25rem;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    top: 0;
+    left: 0;
   }
-  .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent-glow);animation:blink 1.8s ease-in-out infinite}
-  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
-
-  h1{
-    font-size:25px;line-height:1.25;font-weight:700;
-    letter-spacing:-.01em;margin-bottom:10px;
-    background:linear-gradient(120deg,#ffffff 30%,#a9e9d4 100%);
-    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 0.4rem;
+    padding: 0 0.5rem;
   }
-  h1 .mt5{color:var(--accent);-webkit-text-fill-color:var(--accent);white-space:nowrap}
-  .sub{font-size:13.5px;color:var(--text-dim);line-height:1.55;margin-bottom:24px}
-
-  /* ====== CAMPOS ====== */
-  .field{position:relative;margin-bottom:15px}
-  .field input{
-    width:100%;
-    background:var(--field-bg);
-    border:1px solid var(--field-border);
-    border-radius:14px;
-    color:var(--text);
-    font-family:inherit;font-size:15px;font-weight:400;
-    padding:18px 16px 8px;
-    outline:none;
-    transition:border-color .25s, box-shadow .25s, background .25s;
+  .portal-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    background: var(--orange-soft);
+    color: var(--orange-bright);
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    margin-left: 0.5rem;
+    letter-spacing: 0.05em;
   }
-  .field input::placeholder{color:transparent}
-  .field label{
-    position:absolute;left:16px;top:14px;
-    font-size:15px;color:var(--text-dim);
-    pointer-events:none;
-    transition:all .2s cubic-bezier(.2,.8,.2,1);
+  .sidebar-section { margin-top: 2rem; }
+  .sidebar-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 0 0.8rem;
+    margin-bottom: 0.75rem;
   }
-  .field input:focus,
-  .field input:not(:placeholder-shown){
-    background:rgba(255,255,255,.06);
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    color: var(--text-dim);
+    border-radius: 10px;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 0.2rem;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
   }
-  .field input:focus{
-    border-color:var(--accent);
-    box-shadow:0 0 0 3px rgba(21,232,160,.14),0 0 24px -8px var(--accent-glow);
+  .sidebar-item:hover { background: var(--bg-card); color: var(--text); }
+  .sidebar-item.active { background: var(--orange-soft); color: var(--orange-bright); }
+  .sidebar-item .icon { width: 18px; flex-shrink: 0; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
   }
-  .field input:focus + label,
-  .field input:not(:placeholder-shown) + label{
-    top:8px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
-    color:var(--accent);font-weight:600;
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-card);
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
   }
-  .field .req{color:var(--accent);margin-left:2px}
-
-  /* ícone à esquerda removido p/ simplicidade; toggle de senha */
-  .pw-toggle{
-    position:absolute;right:12px;top:50%;transform:translateY(-50%);
-    background:none;border:none;cursor:pointer;color:var(--text-dim);
-    padding:6px;border-radius:8px;display:flex;transition:color .2s,background .2s}
-  .pw-toggle:hover{color:var(--accent);background:rgba(255,255,255,.05)}
-  .pw-toggle svg{width:19px;height:19px}
-
-  .field.invalid input{border-color:var(--err);box-shadow:0 0 0 3px rgba(255,107,107,.12)}
-  .field .msg{font-size:11.5px;color:var(--err);margin-top:6px;padding-left:4px;opacity:0;max-height:0;transition:opacity .2s}
-  .field.invalid .msg{opacity:1;max-height:30px}
-
-  /* check de válido */
-  .check{
-    position:absolute;right:14px;top:50%;transform:translateY(-50%) scale(.6);
-    width:18px;height:18px;opacity:0;transition:opacity .25s,transform .25s;color:var(--accent)}
-  .field.valid .check{opacity:1;transform:translateY(-50%) scale(1)}
-  .field.pw .check{right:42px}
-
-  /* ====== BOTÃO ====== */
-  .btn{
-    position:relative;width:100%;margin-top:8px;
-    border:none;border-radius:14px;cursor:pointer;
-    font-family:inherit;font-size:15px;font-weight:600;letter-spacing:.02em;
-    color:#022;padding:16px;
-    background:linear-gradient(135deg,var(--accent),var(--accent-soft));
-    box-shadow:0 12px 30px -10px var(--accent-glow);
-    overflow:hidden;transition:transform .15s, box-shadow .25s;
+  .user-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--orange) 0%, #ff8a5c 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: white;
+    font-size: 0.95rem;
+    flex-shrink: 0;
   }
-  .btn:hover{transform:translateY(-2px);box-shadow:0 18px 40px -10px var(--accent-glow)}
-  .btn:active{transform:translateY(0)}
-  .btn .lbl{position:relative;z-index:2;display:inline-flex;align-items:center;gap:9px;transition:opacity .2s}
-  .btn .spinner{
-    position:absolute;inset:0;margin:auto;width:22px;height:22px;z-index:3;
-    border:2.5px solid rgba(2,34,34,.3);border-top-color:#022;border-radius:50%;
-    opacity:0;animation:spin .7s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .btn.loading .lbl{opacity:0}
-  .btn.loading .spinner{opacity:1}
-  /* brilho que percorre o botão */
-  .btn::after{content:"";position:absolute;top:0;left:-60%;width:50%;height:100%;
-    background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent);
-    transform:skewX(-20deg);animation:sweep 3.4s ease-in-out infinite}
-  @keyframes sweep{0%,60%{left:-60%}80%,100%{left:120%}}
+  .user-info { overflow: hidden; }
+  .user-name { font-size: 0.88rem; font-weight: 500; }
+  .user-role { font-size: 0.75rem; color: var(--text-muted); }
+  .logout {
+    display: block;
+    padding: 0.6rem 0.8rem;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    width: 100%;
+    text-align: left;
+  }
+  .logout:hover { color: var(--orange-bright); }
 
-  .secure{display:flex;align-items:center;justify-content:center;gap:7px;
-    margin-top:18px;font-size:11.5px;color:var(--text-dim)}
-  .secure svg{width:14px;height:14px;color:var(--accent)}
+  .main {
+    margin-left: 280px;
+    flex: 1;
+    padding: 2.5rem 3rem;
+    max-width: calc(100vw - 280px);
+    width: 100%;
+  }
 
-  .disclaimer{font-size:10.5px;color:#5d6f6c;line-height:1.5;margin-top:18px;
-    text-align:center;border-top:1px solid rgba(255,255,255,.06);padding-top:14px}
+  .page-header { margin-bottom: 2.5rem; }
+  .breadcrumb {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .breadcrumb button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    padding: 0;
+  }
+  .breadcrumb button:hover { color: var(--orange-bright); }
+  .breadcrumb .current { color: var(--orange-bright); }
+  .breadcrumb .sep { color: var(--border-strong); }
 
-  /* ====== SUCESSO ====== */
-  .success{
-    position:absolute;inset:0;z-index:5;border-radius:26px;
-    background:linear-gradient(160deg, rgba(10,18,28,.96), rgba(5,10,20,.96));
-    backdrop-filter:blur(8px);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    text-align:center;padding:40px;
-    opacity:0;visibility:hidden;transform:scale(.97);
-    transition:opacity .4s,transform .4s,visibility .4s}
-  .success.show{opacity:1;visibility:visible;transform:scale(1)}
-  .success .ring{width:80px;height:80px;margin-bottom:22px;position:relative}
-  .success .ring svg{width:100%;height:100%}
-  .success h2{font-size:21px;font-weight:700;margin-bottom:8px}
-  .success p{font-size:13.5px;color:var(--text-dim);line-height:1.55;max-width:280px}
-  .circle{stroke:var(--accent);stroke-width:3;fill:none;stroke-dasharray:289;stroke-dashoffset:289;animation:draw .8s ease forwards}
-  .tick{stroke:var(--accent);stroke-width:4;fill:none;stroke-linecap:round;stroke-dasharray:60;stroke-dashoffset:60;animation:draw .5s ease .6s forwards}
-  @keyframes draw{to{stroke-dashoffset:0}}
+  .page-header h1 {
+    font-size: 2.2rem;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    margin-bottom: 0.4rem;
+  }
+  .page-header h1 em {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    color: var(--orange-bright);
+    font-weight: 400;
+  }
+  .page-header p { color: var(--text-dim); }
 
-  @media (max-width:480px){
-    .card{padding:34px 24px 28px}
-    h1{font-size:22px}
+  /* SEARCH */
+  .search-bar { position: relative; margin-bottom: 2.5rem; }
+  .search-bar.has-results { margin-bottom: 0; }
+  .search-bar input {
+    width: 100%;
+    padding: 1.1rem 1.2rem 1.1rem 3.2rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    color: var(--text);
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  .search-bar input:focus { outline: none; border-color: var(--orange); }
+  .search-icon {
+    position: absolute;
+    left: 1.1rem; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  .quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+  .stat-card {
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+  .stat-card-label {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+  }
+  .stat-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .stat-card-value span { color: var(--orange-bright); }
+
+  .panel-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+  }
+
+  .categories {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 3rem;
+  }
+  .category-card {
+    padding: 1.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-align: left;
+    font-family: inherit;
+    color: inherit;
+  }
+  .category-card:hover {
+    border-color: var(--orange);
+    transform: translateY(-3px);
+  }
+  .category-icon {
+    width: 48px; height: 48px;
+    background: var(--orange-soft);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+  .category-card h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text); }
+  .category-card p { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 1rem; }
+  .category-count { font-size: 0.82rem; color: var(--orange-bright); font-weight: 500; }
+
+  .tutorial-list {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .tutorial-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    color: inherit;
+  }
+  .tutorial-item:last-child { border-bottom: none; }
+  .tutorial-item:hover { background: var(--bg-soft); }
+  .tutorial-icon {
+    width: 40px; height: 40px;
+    background: var(--orange-soft);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.1rem;
+  }
+  .tutorial-info { flex: 1; min-width: 0; }
+  .tutorial-title {
+    font-size: 0.98rem;
+    font-weight: 500;
+    margin-bottom: 0.2rem;
+    color: var(--text);
+  }
+  .tutorial-meta { font-size: 0.82rem; color: var(--text-muted); }
+  .tutorial-tag {
+    padding: 0.25rem 0.7rem;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-strong);
+    border-radius: 100px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .tutorial-arrow { color: var(--text-muted); }
+
+  /* ============ PÁGINA DE TUTORIAL INTERNA ============ */
+  .tutorial-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .tutorial-header-icon {
+    width: 56px; height: 56px;
+    background: var(--orange-soft);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.7rem;
+    flex-shrink: 0;
+  }
+  .tutorial-header h1 {
+    font-size: 1.9rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .tutorial-meta-bar {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+  }
+  .meta-chip.highlight {
+    background: var(--orange-soft);
+    border-color: rgba(255, 87, 34, 0.3);
+    color: var(--orange-bright);
+  }
+
+  .tutorial-content {
+    max-width: 820px;
+  }
+  .tutorial-intro {
+    font-size: 1.05rem;
+    color: var(--text-dim);
+    margin-bottom: 2.5rem;
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border-left: 3px solid var(--orange);
+    border-radius: 8px;
+  }
+  .tutorial-intro strong { color: var(--text); font-weight: 600; }
+
+  .step-block {
+    margin-bottom: 2.5rem;
+    padding: 1.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    position: relative;
+  }
+  .step-block-number {
+    position: absolute;
+    top: -14px;
+    left: 1.75rem;
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 1.4rem;
+    color: white;
+    background: var(--orange);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .step-block h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    margin-top: 0.5rem;
+    letter-spacing: -0.01em;
+  }
+  .step-block p {
+    color: var(--text-dim);
+    margin-bottom: 0.75rem;
+  }
+  .step-block p:last-child { margin-bottom: 0; }
+  .step-block ul {
+    color: var(--text-dim);
+    padding-left: 1.25rem;
+    margin: 0.75rem 0;
+  }
+  .step-block ul li { margin-bottom: 0.4rem; }
+  .step-block strong { color: var(--text); font-weight: 600; }
+  .step-block code {
+    background: var(--bg);
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    color: var(--orange-bright);
+    font-family: monospace;
+  }
+
+  .email-template {
+    margin-top: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg);
+    border: 1px dashed var(--border-strong);
+    border-radius: 8px;
+    font-size: 0.92rem;
+    color: var(--text);
+    font-family: monospace;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+
+  .step-note {
+    margin-top: 1rem;
+    padding: 0.9rem 1rem;
+    background: var(--orange-soft);
+    border-left: 3px solid var(--orange);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--text);
+  }
+  .step-note strong { color: var(--orange-bright); }
+
+  .step-warning {
+    margin-top: 1rem;
+    padding: 0.9rem 1rem;
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 3px solid var(--warning);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--text);
+  }
+  .step-warning strong { color: var(--warning); }
+
+  .tutorial-nav {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .nav-btn {
+    padding: 1rem 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    flex: 1;
+    min-width: 200px;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover {
+    border-color: var(--orange);
+    color: var(--text);
+  }
+  .nav-btn .label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+  .nav-btn .title { font-size: 0.95rem; font-weight: 500; }
+
+  /* Tabela dentro de tutoriais */
+  .tut-table {
+    margin: 1rem 0;
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 0.9rem;
+  }
+  .tut-table th {
+    background: var(--bg-soft);
+    color: var(--text);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-strong);
+  }
+  .tut-table td {
+    padding: 0.7rem 1rem;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+  .tut-table tr:last-child td { border-bottom: none; }
+  .tut-table .highlight-cell { color: var(--orange-bright); font-weight: 600; }
+
+  /* ============ BUSCA: RESULTADOS ============ */
+  .search-results-panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    max-height: 500px;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    z-index: 50;
+    display: none;
+  }
+  .search-results-panel.active { display: block; }
+  .search-results-header {
+    padding: 0.85rem 1.2rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .search-results-header span { color: var(--orange-bright); }
+  .search-result-item {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 0.9rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    color: var(--text);
+    font-family: inherit;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+  .search-result-item:hover { background: var(--bg-soft); }
+  .search-result-item:last-child { border-bottom: none; }
+  .search-result-icon {
+    width: 32px; height: 32px;
+    background: var(--orange-soft);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.95rem;
+  }
+  .search-result-content { flex: 1; min-width: 0; }
+  .search-result-title { font-size: 0.92rem; font-weight: 500; margin-bottom: 0.15rem; }
+  .search-result-meta { font-size: 0.78rem; color: var(--text-muted); }
+  .search-result-type {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 100px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-strong);
+    color: var(--text-dim);
+  }
+  .search-result-type.faq {
+    background: var(--orange-soft);
+    border-color: rgba(255,87,34,0.3);
+    color: var(--orange-bright);
+  }
+  .search-no-results {
+    padding: 2rem 1.2rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  .search-no-results strong { color: var(--orange-bright); }
+
+  /* ============ FILTROS BIBLIOTECA ============ */
+  .filter-chips {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+  .filter-chip {
+    padding: 0.5rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .filter-chip:hover { color: var(--text); border-color: var(--border-strong); }
+  .filter-chip.active {
+    background: var(--orange);
+    color: white;
+    border-color: var(--orange);
+  }
+
+  /* ============ FAQ ACCORDION ============ */
+  .faq-list {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .faq-item { border-bottom: 1px solid var(--border); }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-question {
+    width: 100%;
+    padding: 1.25rem 1.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 0.98rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .faq-question:hover { background: var(--bg-soft); }
+  .faq-toggle {
+    color: var(--orange-bright);
+    font-size: 1.4rem;
+    line-height: 1;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .faq-item.open .faq-toggle { transform: rotate(45deg); }
+  .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+  .faq-item.open .faq-answer { max-height: 600px; }
+  .faq-answer-inner {
+    padding: 0 1.5rem 1.25rem;
+    color: var(--text-dim);
+    font-size: 0.92rem;
+    line-height: 1.65;
+  }
+  .faq-answer-inner strong { color: var(--text); }
+  .faq-answer-inner ul { margin: 0.5rem 0 0.5rem 1.25rem; }
+  .faq-answer-inner li { margin-bottom: 0.3rem; }
+  .faq-related {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  .faq-related a {
+    color: var(--orange-bright);
+    text-decoration: none;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 0;
+  }
+  .faq-related a:hover { text-decoration: underline; }
+
+  .faq-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--orange-bright);
+    margin: 2.5rem 0 1rem;
+    letter-spacing: 0.02em;
+  }
+  .faq-section-title:first-child { margin-top: 0; }
+
+  /* ============ DOCUMENTOS ============ */
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+  .doc-card {
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    transition: all 0.25s;
+    text-align: left;
+    font-family: inherit;
+    color: inherit;
+    cursor: pointer;
+    display: block;
+    text-decoration: none;
+  }
+  .doc-card:hover {
+    border-color: var(--orange);
+    transform: translateY(-3px);
+  }
+  .doc-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+  }
+  .doc-card-icon {
+    width: 44px; height: 44px;
+    background: var(--orange-soft);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.3rem;
+  }
+  .doc-card-type {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .doc-card h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-top: 0.2rem;
+  }
+  .doc-card p {
+    color: var(--text-dim);
+    font-size: 0.88rem;
+    margin-bottom: 1rem;
+  }
+  .doc-card-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--orange-bright);
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  /* Empty state pra contexto */
+  .empty-section {
+    padding: 3rem 2rem;
+    text-align: center;
+    background: var(--bg-card);
+    border: 1px dashed var(--border-strong);
+    border-radius: 16px;
+    color: var(--text-muted);
+  }
+  .empty-section h3 {
+    color: var(--text);
+    font-size: 1.05rem;
+    margin-bottom: 0.5rem;
+  }
+
+  @media (max-width: 900px) {
+    .sidebar {
+      width: 100%;
+      height: auto;
+      position: relative;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    #screen-dashboard.flex, #screen-category.flex, #screen-tutorial.flex,
+    #screen-faq.flex, #screen-library.flex, #screen-docs.flex {
+      flex-direction: column;
+    }
+    .main { margin-left: 0; padding: 2rem 1.5rem; max-width: 100vw; }
+    .tutorial-header h1 { font-size: 1.4rem; }
   }
 </style>
 </head>
 <body>
 
-<canvas id="space"></canvas>
-<div class="nebula" id="nebula"></div>
-<div class="glow-orb one"></div>
-<div class="glow-orb two"></div>
-<div class="grain"></div>
-
-<div class="card">
-  <span class="badge"><span class="dot"></span> Conexão segura · MetaTrader 5</span>
-  <h1>Insira seus dados para ativar a plataforma <span class="mt5">MetaTrader 5</span></h1>
-  <p class="sub">Preencha as informações abaixo para realizar a ativação. Seus dados são utilizados exclusivamente para o processo de conexão.</p>
-
-  <form id="form" novalidate>
-    <div class="field" data-rule="name">
-      <input type="text" id="nome" placeholder=" " autocomplete="name" required>
-      <label for="nome">Nome Completo<span class="req">*</span></label>
-      <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      <div class="msg">Informe seu nome completo.</div>
+<!-- ===================== LOGIN ===================== -->
+<div class="screen" id="screen-login">
+  <div class="login-container">
+    <div class="top-logo">
+      <div class="logo-wrap">
+        <div class="logo-mark">
+          <svg viewBox="0 0 100 100" fill="none">
+            <path d="M20 15 L50 75 L80 15 L65 15 L50 45 L35 15 Z" fill="white"/>
+            <path d="M35 15 L65 15 L50 45 Z" fill="#ff5722"/>
+          </svg>
+        </div>
+        <span>vantage</span>
+      </div>
+      <br><span class="portal-tag">PORTAL IB</span>
     </div>
 
-    <div class="field" data-rule="account">
-      <input type="text" id="conta" placeholder=" " inputmode="numeric" required>
-      <label for="conta">Conta MetaTrader 5<span class="req">*</span></label>
-      <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      <div class="msg">Informe o número da sua conta.</div>
+    <div class="login-card">
+      <div class="login-header">
+        <h1>Bem-vindo, <em>parceiro</em></h1>
+        <p>Acesse a central de conhecimento para IBs</p>
+      </div>
+
+      <form id="realLoginForm" onsubmit="event.preventDefault(); doLogin();">
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="loginEmail" placeholder="seu@email.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <div id="loginError" style="display:none; padding:0.75rem 1rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:10px; color:#ef4444; font-size:0.88rem; margin-bottom:1rem;"></div>
+        <div class="form-options">
+          <label class="remember"><input type="checkbox" id="rememberMe"> Lembrar de mim</label>
+          <a href="#" class="forgot" onclick="event.preventDefault(); forgotPassword();">Esqueci a senha</a>
+        </div>
+        <button type="submit" class="btn-submit" id="loginButton">Entrar →</button>
+        <p class="signup-line">Quer ser um IB? <a href="#" onclick="event.preventDefault(); alert('Para virar parceiro IB Vantage, entre em contato com nossa equipe comercial.');">Solicitar parceria</a></p>
+      </form>
     </div>
 
-    <div class="field pw" data-rule="pass">
-      <input type="password" id="senha" placeholder=" " autocomplete="off" required>
-      <label for="senha">Palavra-passe<span class="req">*</span></label>
-      <button type="button" class="pw-toggle" id="toggle" aria-label="Mostrar palavra-passe">
-        <svg id="eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-      </button>
-      <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      <div class="msg">Informe sua palavra-passe.</div>
+    <div class="login-footer">
+      Trade Smarter. Trade Vantage.
     </div>
-
-    <button type="submit" class="btn" id="btn">
-      <span class="lbl">Ativar plataforma
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </span>
-      <span class="spinner"></span>
-    </button>
-
-    <div class="secure">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-      Dados protegidos e criptografados
-    </div>
-  </form>
-
-  <p class="disclaimer">A responsabilidade pela tomada de decisão e ativação da tecnologia é única e exclusiva do investidor. Investimentos em renda variável envolvem riscos e podem resultar em perdas.</p>
-
-  <!-- Tela de sucesso -->
-  <div class="success" id="success">
-    <div class="ring">
-      <svg viewBox="0 0 100 100">
-        <circle class="circle" cx="50" cy="50" r="46"/>
-        <polyline class="tick" points="30,52 44,66 70,36"/>
-      </svg>
-    </div>
-    <h2>Ativação enviada!</h2>
-    <p>Recebemos seus dados. Em instantes sua plataforma MetaTrader 5 será conectada.</p>
   </div>
 </div>
 
+<!-- ===================== DASHBOARD ===================== -->
+<div class="screen flex" id="screen-dashboard" style="display:none;">
+  <aside class="sidebar">
+    <button class="sidebar-logo" onclick="goTo('dashboard')">
+      <div class="logo-mark">
+        <svg viewBox="0 0 100 100" fill="none">
+          <path d="M20 15 L50 75 L80 15 L65 15 L50 45 L35 15 Z" fill="white"/>
+          <path d="M35 15 L65 15 L50 45 Z" fill="#ff5722"/>
+        </svg>
+      </div>
+      <span>vantage</span>
+    </button>
+    <div style="padding: 0 0.5rem 0 2.6rem;"><span class="portal-badge">PORTAL IB</span></div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Navegação</div>
+      <button class="sidebar-item active" onclick="goTo('dashboard')"><span class="icon">🏠</span> Início</button>
+      <button class="sidebar-item" onclick="goTo('library')"><span class="icon">📚</span> Biblioteca</button>
+      <button class="sidebar-item" onclick="goTo('faq')"><span class="icon">❓</span> FAQ</button>
+      <button class="sidebar-item" onclick="goTo('docs')"><span class="icon">📄</span> Documentos</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Categorias</div>
+      <button class="sidebar-item" onclick="openCategory('abertura')"><span class="icon">💼</span> Abertura de Conta</button>
+      <button class="sidebar-item" onclick="openCategory('transferencia')"><span class="icon">🔄</span> Transferência de Gestão</button>
+      <button class="sidebar-item" onclick="openCategory('ib')"><span class="icon">🤝</span> Área do IB</button>
+      <button class="sidebar-item" onclick="openCategory('comissionamento')"><span class="icon">💸</span> Comissionamento</button>
+      <button class="sidebar-item" onclick="openCategory('deposito')"><span class="icon">💰</span> Depósito e Saque</button>
+      <button class="sidebar-item" onclick="openCategory('promocoes')"><span class="icon">🎁</span> Promoções</button>
+      <button class="sidebar-item" onclick="openCategory('plataformas')"><span class="icon">📊</span> Plataformas</button>
+      <button class="sidebar-item" onclick="openCategory('vantage')"><span class="icon">🏢</span> Sobre a Vantage</button>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar">IB</div>
+        <div class="user-info">
+          <div class="user-name">Parceiro IB</div>
+          <div class="user-role">Introducing Broker</div>
+        </div>
+      </div>
+      <button class="logout" onclick="doLogout()">↩  Sair</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div class="breadcrumb"><span class="current">Início</span></div>
+      <h1>Central do <em>Parceiro</em></h1>
+      <p>Tudo que você precisa para atender seus clientes com excelência.</p>
+    </div>
+
+    <div class="search-bar">
+      <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Buscar tutoriais, dúvidas, processos..." oninput="handleSearch(this)" onfocus="handleSearch(this)" onblur="setTimeout(()=>closeSearch(this),200)">
+      <div class="search-results-panel"></div>
+    </div>
+
+    <div class="quick-stats">
+      <div class="stat-card"><div class="stat-card-label">TUTORIAIS DISPONÍVEIS</div><div class="stat-card-value" id="totalTutoriais"><span>0</span></div></div>
+      <div class="stat-card"><div class="stat-card-label">CATEGORIAS</div><div class="stat-card-value"><span>8</span></div></div>
+      <div class="stat-card"><div class="stat-card-label">ATUALIZADO EM</div><div class="stat-card-value" style="font-size:1.3rem; padding-top:0.5rem;">Hoje</div></div>
+    </div>
+
+    <h2 class="panel-title">Categorias principais</h2>
+    <div class="categories" id="categoriesGrid"></div>
+
+    <h2 class="panel-title">Mais acessados</h2>
+    <div class="tutorial-list" id="popularTutorials"></div>
+  </main>
+</div>
+
+<!-- ===================== CATEGORIA ===================== -->
+<div class="screen flex" id="screen-category" style="display:none;">
+  <aside class="sidebar" id="sidebarCategory"></aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div class="breadcrumb">
+        <button onclick="goTo('dashboard')">Início</button>
+        <span class="sep">/</span>
+        <span class="current" id="categoryBreadcrumb">Categoria</span>
+      </div>
+      <h1 id="categoryTitle">Categoria</h1>
+      <p id="categorySubtitle">Descrição</p>
+    </div>
+
+    <div class="search-bar">
+      <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Buscar tutoriais..." oninput="handleSearch(this)" onfocus="handleSearch(this)" onblur="setTimeout(()=>closeSearch(this),200)">
+      <div class="search-results-panel"></div>
+    </div>
+
+    <h2 class="panel-title">Tutoriais disponíveis</h2>
+    <div class="tutorial-list" id="categoryTutorialList"></div>
+  </main>
+</div>
+
+<!-- ===================== BIBLIOTECA ===================== -->
+<div class="screen flex" id="screen-library" style="display:none;">
+  <aside class="sidebar" id="sidebarLibrary"></aside>
+  <main class="main">
+    <div class="page-header">
+      <div class="breadcrumb">
+        <button onclick="goTo('dashboard')">Início</button>
+        <span class="sep">/</span>
+        <span class="current">Biblioteca</span>
+      </div>
+      <h1>Biblioteca de <em>Tutoriais</em></h1>
+      <p>Todos os tutoriais do portal em um só lugar. Filtre por categoria.</p>
+    </div>
+
+    <div class="search-bar">
+      <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Buscar na biblioteca..." oninput="handleSearch(this)" onfocus="handleSearch(this)" onblur="setTimeout(()=>closeSearch(this),200)">
+      <div class="search-results-panel"></div>
+    </div>
+
+    <div class="filter-chips" id="libraryFilters"></div>
+    <div class="tutorial-list" id="libraryList"></div>
+  </main>
+</div>
+
+<!-- ===================== FAQ ===================== -->
+<div class="screen flex" id="screen-faq" style="display:none;">
+  <aside class="sidebar" id="sidebarFaq"></aside>
+  <main class="main">
+    <div class="page-header">
+      <div class="breadcrumb">
+        <button onclick="goTo('dashboard')">Início</button>
+        <span class="sep">/</span>
+        <span class="current">FAQ</span>
+      </div>
+      <h1>Perguntas <em>Frequentes</em></h1>
+      <p>As dúvidas que mais aparecem na operação com parceiros e clientes.</p>
+    </div>
+
+    <div class="search-bar">
+      <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Buscar perguntas..." oninput="handleSearch(this)" onfocus="handleSearch(this)" onblur="setTimeout(()=>closeSearch(this),200)">
+      <div class="search-results-panel"></div>
+    </div>
+
+    <div id="faqContent"></div>
+  </main>
+</div>
+
+<!-- ===================== DOCUMENTOS ===================== -->
+<div class="screen flex" id="screen-docs" style="display:none;">
+  <aside class="sidebar" id="sidebarDocs"></aside>
+  <main class="main">
+    <div class="page-header">
+      <div class="breadcrumb">
+        <button onclick="goTo('dashboard')">Início</button>
+        <span class="sep">/</span>
+        <span class="current">Documentos</span>
+      </div>
+      <h1>Documentos e <em>Recursos</em></h1>
+      <p>Links rápidos para contratos, termos, materiais de marketing e centrais oficiais.</p>
+    </div>
+
+    <h2 class="panel-title">Documentos contratuais</h2>
+    <div class="docs-grid" id="docsContractual"></div>
+
+    <h2 class="panel-title" style="margin-top:3rem;">Termos e promoções</h2>
+    <div class="docs-grid" id="docsTermos"></div>
+
+    <h2 class="panel-title" style="margin-top:3rem;">Marketing e recursos externos</h2>
+    <div class="docs-grid" id="docsMarketing"></div>
+  </main>
+</div>
+
+<!-- ===================== TUTORIAL INTERNO ===================== -->
+<div class="screen flex" id="screen-tutorial" style="display:none;">
+  <aside class="sidebar" id="sidebarTutorial"></aside>
+  <main class="main" id="tutorialMain"></main>
+</div>
+
 <script>
-/* ===== Starfield + estrelas cadentes ===== */
-const cv=document.getElementById('space'),ctx=cv.getContext('2d');
-let W,H,stars,shooting=[];
-function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;
-  stars=Array.from({length:Math.round(W*H/7000)},()=>({
-    x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.3+.2,
-    a:Math.random(),tw:Math.random()*.02+.004,vy:Math.random()*.04+.01}));}
-resize();addEventListener('resize',resize);
-function spawnShoot(){
-  shooting.push({x:Math.random()*W*.7,y:Math.random()*H*.4,len:Math.random()*120+80,
-    sp:Math.random()*6+6,a:1});
-  setTimeout(spawnShoot,Math.random()*4500+2500);}
-setTimeout(spawnShoot,1800);
-function loop(){
-  ctx.clearRect(0,0,W,H);
-  for(const s of stars){
-    s.a+=s.tw;const o=.4+Math.abs(Math.sin(s.a))*.6;
-    s.y+=s.vy;if(s.y>H)s.y=0;
-    ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,7);
-    ctx.fillStyle=`rgba(220,240,255,${o})`;ctx.fill();}
-  shooting.forEach((m,i)=>{
-    m.x+=m.sp;m.y+=m.sp*.5;m.a-=.012;
-    const g=ctx.createLinearGradient(m.x,m.y,m.x-m.len,m.y-m.len*.5);
-    g.addColorStop(0,`rgba(21,232,160,${m.a})`);g.addColorStop(1,'transparent');
-    ctx.strokeStyle=g;ctx.lineWidth=2;ctx.beginPath();
-    ctx.moveTo(m.x,m.y);ctx.lineTo(m.x-m.len,m.y-m.len*.5);ctx.stroke();
-    if(m.a<=0)shooting.splice(i,1);});
-  requestAnimationFrame(loop);}
-loop();
+  // ============== SUPABASE — AUTENTICAÇÃO REAL ==============
+  const SUPABASE_URL = 'https://hjcybhegcoowrmrtnyuq.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_UeqKToxPGvGGGzWxEIIP_g_Gg1CL5EC';
 
-/* ===== Parallax do mouse na nébula ===== */
-const neb=document.getElementById('nebula');
-addEventListener('mousemove',e=>{
-  const x=(e.clientX/innerWidth-.5),y=(e.clientY/innerHeight-.5);
-  neb.style.transform=`scale(1.12) translate(${x*-18}px,${y*-18}px)`;});
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ===== Toggle de senha ===== */
-const senha=document.getElementById('senha'),eye=document.getElementById('eye');
-document.getElementById('toggle').addEventListener('click',()=>{
-  const show=senha.type==='password';senha.type=show?'text':'password';
-  eye.innerHTML=show
-    ?'<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
-    :'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';});
+  // Login com Supabase
+  async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorEl = document.getElementById('loginError');
+    const btn = document.getElementById('loginButton');
 
-/* ===== Validação em tempo real ===== */
-const fields=[...document.querySelectorAll('.field')];
-function check(f){
-  const inp=f.querySelector('input');const v=inp.value.trim();let ok=false;
-  if(f.dataset.rule==='name')ok=v.split(' ').filter(Boolean).length>=2;
-  else if(f.dataset.rule==='account')ok=/^\d{4,}$/.test(v);
-  else ok=v.length>=3;
-  f.classList.toggle('valid',ok);
-  if(ok)f.classList.remove('invalid');
-  return ok;}
-fields.forEach(f=>{
-  const inp=f.querySelector('input');
-  inp.addEventListener('input',()=>check(f));
-  inp.addEventListener('blur',()=>{if(inp.value.trim()&&!check(f))f.classList.add('invalid');});});
+    errorEl.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Entrando...';
 
-/* ===== Submit ===== */
-/* 1) Cole abaixo a URL do seu App da Web do Apps Script (termina em /exec) */
-const ENDPOINT = "https://script.google.com/macros/s/AKfycbw2ZYvi6oWcFNlvnBXJW2BE9_eJ5T3FtxLh70Rznbz6RtnO9WyYb1ogPyZT5IM7TBmz/exec";
+    try {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) throw error;
 
-const form=document.getElementById('form'),btn=document.getElementById('btn');
-form.addEventListener('submit',e=>{
-  e.preventDefault();
-  let allok=true;
-  fields.forEach(f=>{if(!check(f)){f.classList.add('invalid');allok=false;}});
-  if(!allok){
-    form.animate([{transform:'translateX(0)'},{transform:'translateX(-7px)'},
-      {transform:'translateX(7px)'},{transform:'translateX(0)'}],{duration:300});
-    return;}
+      // Login OK — atualiza nome no perfil
+      updateUserDisplay(data.user);
+      goTo('dashboard');
+    } catch (err) {
+      let msg = 'E-mail ou senha incorretos. Tente novamente.';
+      if (err.message && err.message.toLowerCase().includes('email not confirmed')) {
+        msg = 'Conta ainda não confirmada. Avise o administrador.';
+      } else if (err.message && err.message.toLowerCase().includes('invalid')) {
+        msg = 'E-mail ou senha incorretos.';
+      } else if (err.message) {
+        msg = err.message;
+      }
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Entrar →';
+    }
+  }
 
-  btn.classList.add('loading');btn.disabled=true;
+  // Esqueci a senha
+  async function forgotPassword() {
+    const email = document.getElementById('loginEmail').value.trim();
+    if (!email) {
+      alert('Digite seu e-mail no campo acima antes de clicar em "Esqueci a senha".');
+      return;
+    }
+    try {
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+      alert('Pronto! Se esse e-mail estiver cadastrado, você vai receber um link de recuperação em breve.');
+    } catch (err) {
+      alert('Erro ao solicitar recuperação. Entre em contato com o administrador.');
+    }
+  }
 
-  const payload={
-    nome:document.getElementById('nome').value.trim(),
-    conta:document.getElementById('conta').value.trim(),
-    senha:document.getElementById('senha').value
+  // Logout
+  async function doLogout() {
+    await supabaseClient.auth.signOut();
+    goTo('login');
+    const email = document.getElementById('loginEmail');
+    const pwd = document.getElementById('loginPassword');
+    if (email) email.value = '';
+    if (pwd) pwd.value = '';
+  }
+
+  // Atualiza nome do usuário nas sidebars
+  function updateUserDisplay(user) {
+    if (!user) return;
+    const name = user.user_metadata?.name || user.email?.split('@')[0] || 'Parceiro IB';
+    const displayName = name.length > 20 ? name.substring(0, 18) + '...' : name;
+    setTimeout(() => {
+      document.querySelectorAll('.user-name').forEach(el => el.textContent = displayName);
+    }, 100);
+  }
+
+  // Verifica se está logado ao carregar a página
+  async function checkSession() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      updateUserDisplay(session.user);
+      goTo('dashboard');
+    } else {
+      goTo('login');
+    }
+  }
+
+  // ============== DADOS DAS CATEGORIAS ==============
+  const categories = {
+    abertura: {
+      icon: '💼',
+      title: 'Abertura de Conta',
+      subtitle: 'Como orientar novos clientes desde o cadastro até começar a operar.',
+      tutorials: ['abrir-conta', 'kyc-docs', 'kyc-recusado', 'cliente-nao-aparece']
+    },
+    transferencia: {
+      icon: '🔄',
+      title: 'Transferência de Gestão',
+      subtitle: 'Três cenários distintos de transferência. Cada um tem um processo específico.',
+      tutorials: ['transferencia-cliente', 'transferencia-com-bdm', 'transferencia-ib-para-ib', 'conta-antiga']
+    },
+    ib: {
+      icon: '🤝',
+      title: 'Área do IB',
+      subtitle: 'Como navegar pelo dashboard, pegar o link e gerenciar sua estrutura.',
+      tutorials: ['acessar-ib', 'pegar-link', 'baixar-contrato', 'ver-sub-ibs', 'materiais-marketing']
+    },
+    comissionamento: {
+      icon: '💸',
+      title: 'Comissionamento e Rebates',
+      subtitle: 'Como funciona o pagamento, o cálculo por ativo e os modelos de parceria.',
+      tutorials: ['quando-recebe', 'calculo-indices', 'swap', 'cpa-vs-ib', 'conta-marketing']
+    },
+    deposito: {
+      icon: '💰',
+      title: 'Depósito e Saque',
+      subtitle: 'Métodos aceitos, valores mínimos, prazos e como resolver problemas.',
+      tutorials: ['deposito-minimo', 'tempo-saque', 'politica-aml', 'saque-nao-caiu', 'metodos-pagamento']
+    },
+    promocoes: {
+      icon: '🎁',
+      title: 'Promoções',
+      subtitle: 'Bônus de depósito e outras campanhas vigentes da Vantage.',
+      tutorials: ['bonus-100-25', 'como-inscrever-bonus', 'desqualificacao-bonus']
+    },
+    plataformas: {
+      icon: '📊',
+      title: 'Plataformas e Trading',
+      subtitle: 'MT4, MT5, App Vantage, Copy Trading e regras de automação.',
+      tutorials: ['plataformas-disponiveis', 'mt5-acesso', 'automacao-robos', 'copy-trading-cliente']
+    },
+    vantage: {
+      icon: '🏢',
+      title: 'Sobre a Vantage',
+      subtitle: 'Diferenciais, segurança, regulamentações e tipos de conta.',
+      tutorials: ['quem-somos', 'tipos-conta', 'seguranca-fundos', 'regulamentacao']
+    }
   };
 
-  fetch(ENDPOINT,{
-    method:'POST',
-    mode:'no-cors',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify(payload)
-  })
-  .then(()=>{ document.getElementById('success').classList.add('show'); })
-  .catch(()=>{
-    // Falha de rede: libera o botão e avisa
-    btn.classList.remove('loading');btn.disabled=false;
-    alert('Não foi possível enviar. Verifique sua conexão e tente novamente.');
-  });
-});
+  // ============== TUTORIAIS — CONTEÚDO REAL ==============
+  const tutorials = {
+
+    // ===== ABERTURA DE CONTA =====
+    'abrir-conta': {
+      icon: '📝',
+      title: 'Como orientar o cliente a abrir conta pelo seu link',
+      category: 'abertura',
+      duration: '5 min',
+      tag: 'Essencial',
+      intro: 'Esse é o fluxo básico de cadastro de um novo cliente <strong>pelo seu link de IB</strong>. Garantir que o cliente use o link correto é o que vincula a comissão à sua conta.',
+      steps: [
+        { title: 'Envie o link de IB correto', content: 'Use sempre o link de divulgação que está no seu dashboard de IB. O link tem o formato:', code: 'https://latam.vantagemarkets.com/pt/open-live-account/?affid={SEU_CODIGO}&invitecode={CODIGO}', note: 'Se o cliente se cadastrar por outro link ou direto no site, ele NÃO ficará vinculado a você.' },
+        { title: 'O cliente preenche os dados', content: 'Dados pessoais que serão pedidos no cadastro:', list: ['Nome completo (igual ao documento)', 'CPF', 'E-mail (que ele acesse com frequência)', 'Telefone (preferencialmente com WhatsApp)', 'Endereço residencial'] },
+        { title: 'Escolha do tipo de conta', content: 'Para iniciantes, indique <strong>Standard STP</strong>. Para traders mais experientes, <strong>RAW ECN</strong>. Existem também Cent, Swap-Free e Pro ECN. Veja a categoria "Sobre a Vantage" para detalhes.' },
+        { title: 'Confirmação de e-mail', content: 'O cliente recebe um e-mail de confirmação. Se não chegar em 5 minutos, oriente a verificar caixa de spam e buscar por "vantage".' },
+        { title: 'Próximo passo: KYC', content: 'Conta criada, agora o cliente precisa fazer a verificação KYC (envio de documentos). Sem KYC completo, a conta fica como "lead" e <strong>NÃO aparece no seu dashboard como cliente</strong>.', note: 'Veja o tutorial "Documentos para KYC" para orientar o cliente nessa etapa.' }
+      ]
+    },
+
+    'kyc-docs': {
+      icon: '🪪',
+      title: 'Documentos para KYC e dicas de aprovação rápida',
+      category: 'abertura',
+      duration: '6 min',
+      tag: 'Popular',
+      intro: 'A verificação KYC é etapa obrigatória para o cliente operar. Documentos corretos = aprovação rápida.',
+      steps: [
+        { title: 'Documento de identidade', content: 'Aceitos: RG, CNH ou Passaporte. Frente e verso, fotos nítidas.', list: ['Não pode estar vencido', 'Sem reflexos ou borrões', 'Todos os 4 cantos visíveis', 'Texto legível'] },
+        { title: 'Comprovante de residência', content: 'Conta de luz, água, internet, telefone ou extrato bancário. <strong>Máximo 90 dias</strong> de emissão. Precisa constar nome completo + endereço.' },
+        { title: 'Selfie com documento', content: 'O cliente segurando o documento ao lado do rosto. Boa iluminação, sem óculos escuros, sem boné, rosto bem visível.' },
+        { title: 'Dicas para acelerar', content: 'Enviar tudo de uma vez, em alta qualidade, em JPG ou PDF. Documentos legíveis evitam recusa.', note: 'Documentos corretos: aprovação em 2 a 24 horas úteis. Documentos com problema: pode levar dias com idas e vindas.' }
+      ]
+    },
+
+    'kyc-recusado': {
+      icon: '❌',
+      title: 'KYC recusado — o que fazer',
+      category: 'abertura',
+      duration: '4 min',
+      tag: 'Suporte',
+      intro: 'Procedimento quando o cliente recebe recusa na verificação KYC.',
+      steps: [
+        { title: 'Identificar o motivo', content: 'O cliente recebe e-mail com o motivo. Os mais comuns: documento ilegível, endereço divergente, comprovante vencido, foto com baixa qualidade.' },
+        { title: 'Corrigir e reenviar', content: 'Oriente o cliente a tirar nova foto/digitalização do documento correto e reenviar pelo painel. Não adianta criar nova conta — pode ser questão de qualidade da foto, não de localização.', warning: 'Trocar de e-mail NÃO resolve recusa de KYC se o problema for documento ou localização. Resolver o problema raiz primeiro.' },
+        { title: 'Acompanhar a reanálise', content: 'Após reenvio, novo prazo de 2 a 24h úteis. Em casos persistentes, escalar para o suporte da Vantage.' },
+        { title: 'Caso seja questão de localização', content: 'A Vantage tem uma lista de países que NÃO aceita. <strong>Brasil está na lista de países aceitos</strong>. Para Angola e outros casos específicos, é necessário abrir chamado direto com o gerente.' }
+      ]
+    },
+
+    'cliente-nao-aparece': {
+      icon: '🔍',
+      title: 'Cliente não aparece no meu dashboard',
+      category: 'abertura',
+      duration: '4 min',
+      tag: 'FAQ',
+      intro: 'Cliente fez o cadastro pelo seu link mas você não vê ele no dashboard? Confira esses pontos antes de abrir chamado.',
+      steps: [
+        { title: 'KYC ainda não foi finalizado', content: 'Esse é o motivo mais comum. Sem KYC completo, a conta fica como <strong>"lead"</strong> e não aparece como cliente.', note: 'Você consegue ver os leads ajustando o filtro do dashboard. Procure por "Leads" no painel.' },
+        { title: 'Delay natural após verificação', content: 'Mesmo depois de aprovado, pode levar algumas horas para refletir no dashboard. Não é instantâneo.' },
+        { title: 'Fazer logout e login', content: 'Atualiza alterações na estrutura. Resolve a maioria dos casos onde a informação está "presa".' },
+        { title: 'Cliente usou e-mail diferente', content: 'Pergunte qual e-mail ele usou no cadastro. É comum o cliente achar que usou um e-mail e ter usado outro.' },
+        { title: 'Foi cadastrado abaixo de outro IB', content: 'Verifique se o cliente clicou de fato no SEU link (não de outro IB ou direto no site).', warning: 'Se confirmar que tudo está certo e mesmo assim não aparecer após 24h, abra chamado com seu gerente Vantage enviando: e-mail do cliente, data do cadastro e link usado.' }
+      ]
+    },
+
+    // ===== TRANSFERÊNCIA =====
+    'transferencia-cliente': {
+      icon: '📨',
+      title: 'Cliente comum quer transferir para você',
+      category: 'transferencia',
+      duration: '5 min',
+      tag: 'Essencial',
+      intro: 'Quando o cliente <strong>já tem conta na Vantage</strong> mas não está sob gestão de nenhum BDM, e quer ficar sob sua gestão. Esse é o cenário mais simples.',
+      steps: [
+        { title: 'Cliente envia e-mail para o BDM Vantage', content: 'Use o e-mail do BDM responsável (no momento: <code>alan.freitag@vantagemarkets.com</code>).', warning: 'O cliente precisa enviar do MESMO e-mail cadastrado na Vantage. Senão o pedido é negado por verificação.' },
+        { title: 'Texto do e-mail (padrão)', content: 'O cliente envia algo nesse formato:', emailTemplate: 'Assunto: Solicitação de transferência de gestão\n\nGostaria de estar sob a gestão da conta {SEU_NÚMERO_DE_IB}.\n\nAtenciosamente,\n{Nome do cliente}' },
+        { title: 'Avisar o gerente quando enviar', content: 'Mande mensagem no grupo de parceiros ou direto ao seu BDM avisando que o cliente enviou o e-mail. Acelera a verificação.' },
+        { title: 'Aguardar processamento', content: 'Casos padrão são processados em alguns dias úteis. Confirme com o cliente quando a transferência aparecer no seu dashboard.' }
+      ]
+    },
+
+    'transferencia-com-bdm': {
+      icon: '🔀',
+      title: 'Cliente já está sob outra gestão BDM',
+      category: 'transferencia',
+      duration: '6 min',
+      tag: 'Importante',
+      intro: 'Quando o cliente <strong>já está sob a gestão de outro BDM da Vantage</strong> (não só conta solta). O processo é diferente — precisa envolver o gerente atual também.',
+      steps: [
+        { title: 'Identificar o gerente atual do cliente', content: 'Envie o número de conta ou e-mail do cliente para o seu BDM Vantage. Ele identifica quem é o gerente atual e te passa o e-mail.' },
+        { title: 'Cliente envia e-mail para 2 endereços', content: 'O cliente precisa mandar o MESMO e-mail para dois destinatários ao mesmo tempo:', list: ['<code>support@vantagemarkets.com</code>', 'E-mail do gerente atual (que o BDM Vantage te passar)'] },
+        { title: 'Texto do e-mail', content: 'Sugestão padrão:', emailTemplate: 'Assunto: Solicitação de transferência de gestão\n\nGostaria de ser transferido junto com minha estrutura para gestão do IB {SEU_NÚMERO}.\n\nSem mais, obrigado.\n\n{Nome do cliente}' },
+        { title: 'Cliente encaminha para seu BDM', content: 'Depois de enviar, o cliente precisa <strong>encaminhar esse mesmo e-mail</strong> para o seu BDM Vantage (atualmente <code>alan.freitag@vantagemarkets.com</code>). Esse passo é essencial — sem ele, o BDM não sabe que precisa puxar o caso.' },
+        { title: 'Avisar e aguardar', content: 'Avise seu BDM que o cliente enviou. O processo de transferência entre gerentes pode levar até alguns dias úteis, especialmente se o BDM atual estiver em outro fuso (ex: Ásia).', note: 'Casos com BDMs em fuso diferente (ex: equipe da Ásia) demoram mais. Avise o cliente para gerenciar expectativa.' }
+      ]
+    },
+
+    'transferencia-ib-para-ib': {
+      icon: '🤝',
+      title: 'Cliente é IB e quer virar sub-IB seu',
+      category: 'transferencia',
+      duration: '5 min',
+      tag: 'Avançado',
+      intro: 'Quando o cliente <strong>já é IB da Vantage</strong> e quer entrar na sua estrutura como sub-IB. O processo é parecido com a transferência com BDM, mas com texto específico.',
+      steps: [
+        { title: 'Identificar gerente atual', content: 'Mesmo procedimento: passe o e-mail/conta do IB para o seu BDM Vantage para identificar quem é o gerente atual.' },
+        { title: 'IB envia e-mail para 2 endereços', content: 'Para o e-mail do gerente atual + <code>support@vantagemarkets.com</code>.' },
+        { title: 'Texto do e-mail (específico para IB)', content: 'A diferença está no texto:', emailTemplate: 'Assunto: Solicitação de transferência de IB\n\nGostaria de estar sob a gestão do parceiro IB {SEU_NÚMERO_DE_IB}.\n\nSem mais, obrigado.\n\n{Nome do parceiro}' },
+        { title: 'Encaminhar para seu BDM', content: 'IB encaminha o e-mail enviado para o seu BDM Vantage.' },
+        { title: 'Aguardar contrato', content: 'Após aprovação da transferência, um novo contrato é gerado refletindo a nova hierarquia. O parceiro precisa aceitar esse contrato no portal de IB dele para a estrutura ficar ativa.', warning: 'Importante: o número de IB no e-mail tem que ser do <strong>seu IB final</strong> (aquele que receberá o sub-IB), não o de IBs intermediários da estrutura.' }
+      ]
+    },
+
+    'conta-antiga': {
+      icon: '⏳',
+      title: 'Conta antiga: quando não tem opção de transferência',
+      category: 'transferencia',
+      duration: '4 min',
+      tag: 'Suporte',
+      intro: 'Algumas contas mais antigas estão em regulamentações que <strong>não permitem transferência</strong>. Nesses casos, existe um procedimento alternativo.',
+      steps: [
+        { title: 'Confirmar inviabilidade com o BDM', content: 'Antes de partir pro plano B, o BDM Vantage precisa confirmar internamente que a conta realmente não pode ser transferida.' },
+        { title: 'Cliente abre conta nova pelo seu link', content: 'Solução autorizada: o cliente faz cadastro do zero usando seu link direto de IB. Pode usar o mesmo e-mail (se permitido) ou um novo.' },
+        { title: 'Refazer KYC', content: 'O cliente precisa enviar documentos novamente, mesmo que já tenha enviado antes. É uma conta nova no sistema.' },
+        { title: 'Após verificação, contrato é enviado', content: 'Assim que a nova conta for verificada, o BDM Vantage envia o contrato de IB (se aplicável) e a estrutura fica ativa.', note: 'Esse é o caso mais demorado — pode levar até uma semana entre identificação do problema, criação da nova conta e finalização. Avise o cliente para gerenciar expectativa.' }
+      ]
+    },
+
+    // ===== ÁREA DO IB =====
+    'acessar-ib': {
+      icon: '🚪',
+      title: 'Como acessar sua área de IB',
+      category: 'ib',
+      duration: '2 min',
+      tag: 'Essencial',
+      intro: 'Depois que sua conta de IB está ativa, é assim que você troca entre perfil de Cliente e perfil de IB.',
+      steps: [
+        { title: 'Entrar na conta da Vantage', content: 'Acesse o site da Vantage e faça login normalmente.' },
+        { title: 'Clicar no círculo do perfil', content: 'No canto superior direito da tela, clique no círculo do seu avatar/perfil.' },
+        { title: 'Trocar de Cliente para IB', content: 'Logo abaixo deve aparecer a opção de trocar de perfil. Clique em "IB".', note: 'Se não aparecer essa opção, sua conta de IB ainda não está ativa. Avise seu BDM Vantage.' },
+        { title: 'Você está no dashboard de IB', content: 'A interface muda e você passa a ver: link de divulgação, clientes da sua estrutura, comissionamento, leads e materiais.' }
+      ]
+    },
+
+    'pegar-link': {
+      icon: '🔗',
+      title: 'Onde pegar seu link de divulgação',
+      category: 'ib',
+      duration: '2 min',
+      tag: 'Essencial',
+      intro: 'O link de divulgação é o que vincula novos clientes a você. Use ele em TODA divulgação — para clientes e para sub-parceiros.',
+      steps: [
+        { title: 'Acessar a área de IB', content: 'Canto superior direito → clicar no círculo do perfil → clicar em "IB".' },
+        { title: 'Link aparece direto na home do IB', content: 'Assim que você entra no perfil de IB, o link principal já fica visível no dashboard.', note: 'Esse mesmo link serve tanto para indicar clientes quanto para indicar sub-parceiros. Não tem link separado.' },
+        { title: 'Copiar e usar', content: 'Copie o link e use em todo lugar: redes sociais, anúncios, conversas no WhatsApp, e-mail. Quanto mais difundido o link, melhor.' },
+        { title: 'Materiais de marketing disponíveis', content: 'Veja o tutorial "Materiais de marketing" para banners, logos e artes prontas para usar nas suas campanhas.' }
+      ]
+    },
+
+    'baixar-contrato': {
+      icon: '📄',
+      title: 'Como acessar e baixar seu contrato de IB',
+      category: 'ib',
+      duration: '3 min',
+      tag: 'Importante',
+      intro: 'O contrato de IB fica no seu próprio dashboard. <strong>ATENÇÃO: ele aparece como pop-up no primeiro acesso e pode ser "aceito" sem você perceber.</strong>',
+      steps: [
+        { title: 'Entrar na conta da Vantage', content: 'Faça login na sua conta normalmente.' },
+        { title: 'Trocar para perfil de IB', content: 'Canto superior direito → círculo do perfil → "IB".' },
+        { title: 'Navegar até o contrato', content: 'No dashboard de IB:', list: ['Tela inicial', 'Clicar em "Mais" (ao lado de "Links")', 'Rolar até o rodapé da página', 'Clicar em "Acordo IB"'] },
+        { title: 'Baixar o PDF', content: 'Lá você consegue visualizar e baixar o PDF completo do contrato.', warning: 'Atenção importante: o contrato aparece como pop-up assim que você entra na área de cliente pela primeira vez. Muitos parceiros clicam "aceitar" sem perceber que era o contrato. Se aparece "assinado" no sistema mas você não lembra de ter assinado — foi isso que aconteceu. Para ler os termos, baixe o PDF pelo passo acima.' }
+      ]
+    },
+
+    'ver-sub-ibs': {
+      icon: '👥',
+      title: 'Como ver seus sub-IBs e clientes na estrutura',
+      category: 'ib',
+      duration: '3 min',
+      tag: 'Comum',
+      intro: 'Visibilidade da sua estrutura — você vê seus clientes diretos. Para ver clientes de sub-IBs, é preciso navegar dentro da estrutura.',
+      steps: [
+        { title: 'Visão padrão: clientes diretos', content: 'No dashboard você vê seus clientes diretos, com volume operado e comissionamento em tempo real.' },
+        { title: 'Para ver sub-parceiros', content: 'Clique no nome do sub-IB na sua lista. Isso abre a visão dele e você consegue ver os clientes que estão abaixo dele.' },
+        { title: 'Se um sub-IB novo não aparece', content: 'Faça logout e login de novo. Atualiza alterações de estrutura. Sub-IBs novos têm delay para aparecer.' },
+        { title: 'Visão completa da estrutura', content: 'A visão total de toda a estrutura (incluindo todos os níveis) só está disponível para o gestor principal da operação, não para IBs individuais.', note: 'Se você precisa de relatórios mais detalhados, peça para o gestor principal exportar — ele tem acesso ampliado.' }
+      ]
+    },
+
+    'materiais-marketing': {
+      icon: '🎨',
+      title: 'Materiais de marketing: logos, banners e artes',
+      category: 'ib',
+      duration: '2 min',
+      tag: 'Útil',
+      intro: 'A Vantage disponibiliza um portal próprio com logos oficiais, banners localizados em vários idiomas e materiais prontos para suas campanhas.',
+      steps: [
+        { title: 'Acessar o IB Marketing Tools', content: 'Endereço:', code: 'https://partners.vantagemarkets.com/pt-br/ib-marketing-tools/' },
+        { title: 'O que tem disponível', content: 'Materiais oficiais:', list: ['Logos em PNG (com e sem fundo)', 'Banners em vários tamanhos para redes sociais', 'Artes prontas para campanhas', 'Materiais multilíngues', 'Mockups de copa, canecas e brindes'] },
+        { title: 'Usar nos seus criativos', content: 'Os materiais são livres para usar nas suas campanhas pagas, posts orgânicos e qualquer divulgação onde você esteja representando a parceria com a Vantage.' }
+      ]
+    },
+
+    // ===== COMISSIONAMENTO =====
+    'quando-recebe': {
+      icon: '⏰',
+      title: 'Quando o IB recebe as comissões',
+      category: 'comissionamento',
+      duration: '2 min',
+      tag: 'Essencial',
+      intro: 'O cronograma de pagamento das comissões é fixo. Importante saber para alinhar expectativa com sub-parceiros.',
+      steps: [
+        { title: 'Pagamento 1x por dia', content: 'As comissões são pagas <strong>uma vez por dia</strong>, em lote, para todos os IBs.' },
+        { title: 'Janela de pagamento', content: 'O processamento acontece entre <strong>21h e 23h (horário de Brasília)</strong>.' },
+        { title: 'Atualização em tempo real no dashboard', content: 'Mesmo que o pagamento só caia à noite, o valor a receber atualiza em tempo real no seu dashboard conforme os clientes operam.', note: 'Se você opera/indica em vários ativos, vai ver o comissionamento crescendo durante o dia. À noite ele "vira" saldo na sua conta.' },
+        { title: 'Saque da comissão', content: 'Após o saldo cair na sua conta, você pode solicitar saque normalmente (PIX, crypto, etc). Veja "Tempo de Saque" para detalhes.' }
+      ]
+    },
+
+    'calculo-indices': {
+      icon: '📐',
+      title: 'Como é calculado o rebate em índices (HK50, etc)',
+      category: 'comissionamento',
+      duration: '4 min',
+      tag: 'Avançado',
+      intro: 'O cálculo de rebate em índices é diferente de Forex. É baseado no <strong>valor do ativo</strong> e <strong>volume operado</strong>, similar ao que se faz em crypto.',
+      steps: [
+        { title: 'A fórmula geral', content: 'Para índices, o cálculo é:', code: 'Rebate = (valor do ativo × lotes / 1.000.000) × valor de rebate definido' },
+        { title: 'Exemplo prático com HK50', content: 'Suponha:', list: ['Ativo: HK50 com valor de $25.850', 'Lotes operados: 2', 'Rebate definido por lote: $50 por milhão'] },
+        { title: 'Aplicando a fórmula', content: 'Passo a passo:', list: ['Volume total operado: 2 lotes × $25.850 = $51.700', 'Rebate: (51.700 / 1.000.000) × 50 = <strong>$2,58 USD</strong>'] },
+        { title: 'Por que esse cálculo é variável', content: 'Diferente de Forex (onde o lote tem tamanho padrão), em índices o valor do ativo entra na conta. Ativos mais "caros" geram rebate maior por lote operado.', note: 'Para Forex, ouro (XAU/USD) e outros ativos com cálculo padrão, o rebate é fixo por lote conforme definido no seu contrato.' }
+      ]
+    },
+
+    'swap': {
+      icon: '🔁',
+      title: 'Swap: o IB recebe ou paga?',
+      category: 'comissionamento',
+      duration: '2 min',
+      tag: 'Comum',
+      intro: 'Sim, o IB <strong>recebe ou paga swap</strong> dependendo da operação dos clientes. É uma fonte adicional de comissionamento.',
+      steps: [
+        { title: 'O que é swap', content: 'Swap é a taxa overnight aplicada quando uma operação fica aberta de um dia para o outro. Pode ser positivo (você recebe) ou negativo (você paga).' },
+        { title: 'Exemplo prático: EUR/USD', content: 'No EUR/USD: clientes que ficam em <strong>venda</strong> geram swap positivo (você recebe). Clientes em <strong>compra</strong> geram swap negativo (você paga).' },
+        { title: 'Varia por ativo', content: 'Cada ativo tem sua tabela de swap. Para detalhes específicos por ativo, consulte o spread/swap médio na sua plataforma ou peça ao BDM Vantage o relatório mais recente.' },
+        { title: 'Onde aparece no comissionamento', content: 'O swap entra no seu cálculo total de rebate, junto com a comissão por lote operado. Tudo consolidado no mesmo dashboard.' }
+      ]
+    },
+
+    'cpa-vs-ib': {
+      icon: '⚖️',
+      title: 'CPA vs IB — qual modelo escolher',
+      category: 'comissionamento',
+      duration: '5 min',
+      tag: 'Avançado',
+      intro: 'A Vantage trabalha com dois modelos: <strong>IB tradicional</strong> (rebate por lote operado) e <strong>CPA</strong> (custo por aquisição). Cada um faz sentido para um perfil diferente.',
+      steps: [
+        { title: 'Modelo IB tradicional', content: 'Você indica o cliente e ganha um rebate por cada lote que ele opera. <strong>Receita contínua</strong> e proporcional ao volume da sua base.', list: ['Bom para: influenciadores, comunidades, traders que ensinam', 'Receita escala com volume operado', 'Não tem limite de quanto pode ganhar por cliente'] },
+        { title: 'Modelo CPA', content: 'Você ganha um valor fixo por cliente que abre conta, faz primeiro depósito e cumpre certas regras de volume.', list: ['Bom para: empresas que fazem tráfego pago em escala', 'Receita pontual por aquisição', 'Regras complexas que precisam ser entendidas a fundo'] },
+        { title: 'Quando recomendar CPA', content: 'CPA faz sentido quando o parceiro tem:', list: ['Operação de tráfego pago consolidada', 'Capacidade de escalar volume rapidamente', 'Estrutura empresarial (não pessoa física)'] },
+        { title: 'Quando recomendar IB', content: 'IB é o padrão recomendado para:', list: ['Influenciadores e criadores de conteúdo', 'Líderes de comunidade', 'Traders que ensinam ou fazem mentoria', 'Qualquer parceiro pessoa física'] },
+        { title: 'Combinação dos dois', content: 'É possível combinar IB e CPA em casos específicos, mas exige análise caso a caso com o BDM Vantage.', warning: 'Pessoa física tende a se frustrar com CPA por causa das regras complexas. Para perfil de comunidade/influenciador, sempre puxe a conversa para IB.' }
+      ]
+    },
+
+    'conta-marketing': {
+      icon: '📢',
+      title: 'Conta marketing para influenciadores',
+      category: 'comissionamento',
+      duration: '3 min',
+      tag: 'Avançado',
+      intro: 'A Vantage tem ferramenta de conta marketing para influenciadores, mas é <strong>liberada apenas para parceiros com volume relevante</strong>.',
+      steps: [
+        { title: 'O que é conta marketing', content: 'Estrutura específica para influenciadores que querem fazer copy trading expondo sua operação para a base de 5M+ usuários da Vantage.' },
+        { title: 'Requisito de volume', content: 'A liberação dessa ferramenta exige uma entrada de capital relevante via o parceiro (valor sujeito a atualização — referência recente foi USD 100.000 net).', note: 'O valor pode ter mudado. Antes de oferecer essa ferramenta a um parceiro, confirme o valor atualizado com seu BDM Vantage.' },
+        { title: 'Quando faz sentido', content: 'Para parceiros com grande audiência (centenas de milhares de seguidores) que querem monetizar via copy trading expondo a estratégia deles. Caso contrário, o modelo IB tradicional rende mais.' }
+      ]
+    },
+
+    // ===== DEPÓSITO E SAQUE =====
+    'deposito-minimo': {
+      icon: '💵',
+      title: 'Valor mínimo de depósito',
+      category: 'deposito',
+      duration: '2 min',
+      tag: 'Essencial',
+      intro: 'Os valores mínimos da Vantage estão entre os menores do mercado. Diferencial forte para parceiros que captam clientes iniciantes.',
+      steps: [
+        { title: 'Conta de trading: USD 5', content: 'Sim, cinco dólares. Esse é o mínimo absoluto para depositar direto na conta de trading.' },
+        { title: 'Para o bônus de depósito', content: 'Para participar da promoção de bônus de depósito (100% + 25%), o mínimo é <strong>USD 100</strong>. Abaixo desse valor não é elegível.' },
+        { title: 'V-Wallet (carteira interna)', content: 'Mínimos por método:', list: ['USDT/USDC: 50 unidades', 'BTC: 0.0005 BTC', 'ETH: 0.0025 ETH'] },
+        { title: 'Diferencial competitivo', content: 'Comparado a corretoras concorrentes que exigem USD 100 a USD 1.000 de mínimo, a Vantage está muito à frente. Use esse argumento na conversão de clientes.' }
+      ]
+    },
+
+    'tempo-saque': {
+      icon: '⚡',
+      title: 'Tempo de saque por método',
+      category: 'deposito',
+      duration: '3 min',
+      tag: 'Essencial',
+      intro: 'Saques no Brasil são rápidos via PIX. Importante entender a janela de processamento da Vantage para gerenciar expectativa do cliente.',
+      steps: [
+        { title: 'Aprovação interna do saque', content: 'Quando o cliente vê "saque bem-sucedido" no sistema, significa que a Vantage APROVOU o saque. Daqui em diante depende do provedor de pagamento.' },
+        { title: 'Janela de processamento', content: 'Os saques entram em uma janela diária de processamento:', list: ['Horário: <strong>21h às 23h (horário de Brasília)</strong>', 'Acontece todo dia útil', 'PIX e crypto são quase imediatos após processamento'] },
+        { title: 'Tempo total por método', content: 'Para o dinheiro chegar:', list: ['PIX: até a janela de 21h-23h do mesmo dia (se aprovado antes)', 'Crypto: também na janela noturna', 'TED/transferência bancária: 1 a 5 dias úteis dependendo do banco', 'Cartão: pode levar mais alguns dias para refletir na fatura'] },
+        { title: 'Quando se preocupar', content: 'Se já se passaram mais de <strong>5 horas</strong> da janela de processamento e o cliente não recebeu, é hora de abrir chamado.', note: 'Veja o tutorial "Saque aprovado mas não caiu" para o procedimento de abertura de chamado.' }
+      ]
+    },
+
+    'politica-aml': {
+      icon: '🔒',
+      title: 'Política de saque (AML)',
+      category: 'deposito',
+      duration: '4 min',
+      tag: 'Importante',
+      intro: 'A Vantage segue políticas rígidas de prevenção à lavagem de dinheiro (AML). Essas regras protegem o cliente e a corretora — e são <strong>inegociáveis</strong>.',
+      steps: [
+        { title: 'Regra de ouro', content: '<strong>O dinheiro entra e sai pelo mesmo método de pagamento</strong>, e <strong>no nome da mesma pessoa</strong>. Não tem exceção.', list: ['Mesmo CPF/nome no depósito e no saque', 'Mesmo método (depositou em PIX → saca em PIX; depositou em cripto → saca em cripto)', 'Titularidade idêntica à da conta Vantage'] },
+        { title: 'Depósito de CPF X, saque de CPF Y?', content: '<strong>NÃO é permitido.</strong> Mesmo entre familiares ou cônjuges. A regra é estrita: mesmo CPF, mesmo nome.' },
+        { title: 'Depositou em PIX, quer sacar em cripto?', content: 'Possível, mas com condição: o cliente precisa ter <strong>usado ambos os métodos previamente</strong> — pelo menos uma entrada e uma saída em PIX, e o mesmo em cripto. Sem histórico, não rola.' },
+        { title: 'Carteira de cripto', content: 'A wallet precisa estar <strong>verificada e em nome do titular</strong> da conta Vantage. Saque para wallet de terceiros é negado.' },
+        { title: 'Transferências entre contas', content: 'Contas de mesma titularidade podem fazer transferências entre si normalmente. Mas <strong>transferência entre terceiros NÃO é permitida</strong> pela conta Vantage — se você precisa repassar valor para sub-parceiro, faz por fora.', warning: 'Não tente "burlar" essas regras. A Vantage tem sistema robusto de detecção e pode bloquear a conta. Sempre oriente o cliente a manter consistência na titularidade.' }
+      ]
+    },
+
+    'saque-nao-caiu': {
+      icon: '🚨',
+      title: 'Saque aprovado mas não caiu na conta',
+      category: 'deposito',
+      duration: '4 min',
+      tag: 'Suporte',
+      intro: 'Cliente vê "saque bem-sucedido" no sistema mas o dinheiro não chegou? Procedimento passo a passo.',
+      steps: [
+        { title: 'Entender o status', content: '"Bem-sucedido" significa que a Vantage aprovou. Depois disso, depende do provedor de pagamento (banco, processadora de cartão, rede crypto).' },
+        { title: 'Esperar a janela passar', content: 'Se o saque foi aprovado durante o dia, espere passar a janela das 21h-23h. PIX e cripto geralmente caem na sequência.' },
+        { title: 'Esperar 5 horas após a janela', content: 'Se já se passaram mais de 5 horas depois das 23h e o dinheiro não chegou, é hora de abrir chamado.' },
+        { title: 'Informações para abrir chamado', content: 'Para o financeiro abrir chamado, o cliente precisa enviar por escrito:', list: ['E-mail da conta Vantage', 'Número da conta', 'Número do pedido (começa com V2, aparece na tela de confirmação)', 'Valor do saque', 'Dia e hora exatos da solicitação'] },
+        { title: 'Enviar para o BDM', content: 'Repasse essas informações ao seu BDM Vantage. Ele abre o chamado no financeiro e pede código de rastreio da transferência para o provedor.', note: 'Erros comuns que atrasam saque: cartão expirado, conta bancária fechada, endereço de cripto errado, dados divergentes. O sistema reembolsa automaticamente em alguns desses casos.' }
+      ]
+    },
+
+    'metodos-pagamento': {
+      icon: '💳',
+      title: 'Métodos de pagamento disponíveis',
+      category: 'deposito',
+      duration: '3 min',
+      tag: 'Comum',
+      intro: 'Lista completa de métodos aceitos pela Vantage para o mercado brasileiro e LATAM.',
+      steps: [
+        { title: 'Brasil: PIX 24/7', content: 'PIX é o método principal no Brasil. Disponível 24 horas por dia, todos os dias, com depósitos e saques quase instantâneos em BRL.' },
+        { title: 'Criptomoedas', content: 'Aceitos:', list: ['USDT (rede TRC20 — mais econômica)', 'USDC', 'Bitcoin (BTC)', 'Ethereum (ETH)'] },
+        { title: 'Cartão de crédito/débito', content: 'Visa, Mastercard, JCB. Aprovação imediata. Algumas operadoras bloqueiam transações de câmbio — vale orientar o cliente a checar.' },
+        { title: 'Outros métodos LATAM', content: 'A Vantage tem integração local em vários países:', list: ['México: SPEI + OXXO (19k+ pontos)', 'Argentina: ARS + USDT', 'Colômbia: PSE + Bancolombia', 'Demais: USD, crypto, cartão'] },
+        { title: 'Carteiras eletrônicas', content: 'Skrill, Neteller, PayPal, Fasapay, Perfect Money, bitwallet, Sticpay, AstroPay e outros conforme região.' }
+      ]
+    },
+
+    // ===== PROMOÇÕES =====
+    'bonus-100-25': {
+      icon: '🎁',
+      title: 'Bônus de depósito 100% + 25% — entenda as regras',
+      category: 'promocoes',
+      duration: '6 min',
+      tag: 'Atualizado',
+      intro: 'A promoção principal da Vantage: <strong>100% no primeiro depósito (até USD 300 de crédito) + 25% nos depósitos subsequentes</strong>. Limite total de USD 20.000 por cliente. Esse tutorial cobre tudo que você precisa saber para orientar o cliente.',
+      steps: [
+        { title: 'Quem pode participar', content: 'Contas elegíveis:', list: ['Standard STP', 'RAW ECN', 'Swap Free', 'Cent', 'Perpetual', 'TradingView', 'Copy Trading'], warning: 'Contas USDT, BTC e ETH NÃO são elegíveis para o bônus.' },
+        { title: 'Como participar', content: 'Não é automático! O cliente precisa:', list: ['Inscrever-se na promoção pelo Portal do Cliente ou Vantage App', 'Ter verificação facial concluída', 'Fazer depósito mínimo de USD 100'] },
+        { title: 'Como funciona o bônus', content: 'Estrutura:', list: ['<strong>100% do primeiro depósito</strong> até USD 300 de crédito', '<strong>25% sobre depósitos subsequentes</strong>', 'Crédito em até 24h após depósito processado', 'Limite total de crédito: USD 20.000 por cliente'] },
+        { title: 'Exemplos práticos', content: 'Veja como o bônus cresce com o depósito:', table: { headers: ['Seu primeiro depósito (USD)', 'Bônus de crédito'], rows: [['$100', '$100 × 100% = $100'], ['$300', '$300 × 100% = $300'], ['$1.000', '($300 × 100%) + ($700 × 25%) = $475']] } },
+        { title: 'Como funciona o saque do bônus', content: '<strong>O bônus de crédito não é sacável.</strong> Mas os lucros gerados a partir dele são. Se o cliente saca parte do depósito, parte proporcional do crédito é deduzida.', note: 'Transferência interna (incluindo Copy Trading) também é tratada como saque para cálculo de desconto do bônus.' }
+      ]
+    },
+
+    'como-inscrever-bonus': {
+      icon: '✅',
+      title: 'Como o cliente se inscreve no bônus',
+      category: 'promocoes',
+      duration: '2 min',
+      tag: 'Essencial',
+      intro: 'O bônus não é automático — o cliente precisa <strong>se inscrever pelo Portal do Cliente ou app</strong> antes de depositar.',
+      steps: [
+        { title: 'Entrar no Portal do Cliente', content: 'O cliente acessa a área logada dele no site ou pelo Vantage App.' },
+        { title: 'Ir até a aba de Promoções', content: 'Procurar a seção "Promoções" no menu. Lá ficam todas as campanhas vigentes da Vantage.', note: 'Acesso direto: https://latam.vantagemarkets.com/pt/promotions/' },
+        { title: 'Inscrever-se na promoção', content: 'Clicar no bônus de depósito 100% + 25% e confirmar a inscrição. O cliente aceita os termos da promoção.' },
+        { title: 'Fazer depósito mínimo de USD 100', content: 'Após inscrito, basta fazer o depósito (mínimo USD 100). O crédito cai em até 24h.', warning: 'Se o cliente depositar ANTES de se inscrever na promoção, ele não recebe o bônus daquele depósito. Sempre oriente a inscrever primeiro.' }
+      ]
+    },
+
+    'desqualificacao-bonus': {
+      icon: '⚠️',
+      title: 'O que desqualifica do bônus',
+      category: 'promocoes',
+      duration: '3 min',
+      tag: 'Importante',
+      intro: 'A Vantage pode desqualificar participantes que violam as regras. Conhecer as causas evita problemas com clientes.',
+      steps: [
+        { title: 'Causas de desqualificação', content: 'A Vantage desqualifica quem:', list: ['Viola os termos da promoção', 'Fornece informações falsas ou enganosas', 'Faz negociação excessiva (churning — abrir/fechar usando só a margem do bônus)', 'Usa hedge entre contas', 'Faz negociação suspeita ou abusiva'] },
+        { title: 'O que é "churning"', content: 'Abrir e fechar operações de Forex/CFD apenas para aproveitar margem do bônus, sem estratégia real de investimento. A Vantage monitora esse padrão.', warning: 'Não oriente clientes a "rodar volume" só para liberar o bônus. Isso é exatamente o que dispara a desqualificação.' },
+        { title: 'Quem NÃO pode participar', content: 'Restrições:', list: ['Clientes indicados por PAMM/MAM (gestor de fundos)', 'Contas USDT, BTC, ETH (não elegíveis)'] },
+        { title: 'Não pode combinar com outros bônus', content: 'O bônus 100% + 25% não pode ser combinado com o bônus padrão de 50% + 10% nem com o bônus de 100% para contas Perpetual.' }
+      ]
+    },
+
+    // ===== PLATAFORMAS =====
+    'plataformas-disponiveis': {
+      icon: '🖥️',
+      title: 'Plataformas disponíveis na Vantage',
+      category: 'plataformas',
+      duration: '3 min',
+      tag: 'Comum',
+      intro: 'A Vantage oferece 6 plataformas diferentes para que cada tipo de trader opere do jeito que prefere.',
+      steps: [
+        { title: 'App Vantage (mobile)', content: 'iOS e Android. Mais de 1.000 instrumentos, Copy Trading integrado, interface simplificada. Ideal para iniciantes.' },
+        { title: 'MT4 e MT5', content: 'Padrão da indústria. Suporte total a EAs (robôs), hedging, sinais, backtest. Recomendado para traders experientes.' },
+        { title: 'TradingView', content: 'Integração nativa com a Vantage. Gráficos avançados, indicadores e execução direta dentro do TradingView.' },
+        { title: 'WebTrader', content: 'MT4/MT5 direto no navegador, sem precisar instalar nada. Ideal para acesso rápido em qualquer computador.' },
+        { title: 'Vantage WebTrading', content: 'Plataforma proprietária baseada na web. Mais flexibilidade e controle, ainda em expansão de recursos.' },
+        { title: 'Copy Trading', content: 'Plataforma de cópia automática. Mínimo USD 50 para copiar, acesso a mais de 69.000 traders. Veja o tutorial específico de Copy Trading.' }
+      ]
+    },
+
+    'mt5-acesso': {
+      icon: '🔑',
+      title: 'Como o cliente acessa o MT4/MT5',
+      category: 'plataformas',
+      duration: '3 min',
+      tag: 'Essencial',
+      intro: 'Passo a passo oficial para o cliente fazer login na plataforma MT4 ou MT5 com a conta da Vantage.',
+      steps: [
+        { title: 'Baixar a plataforma', content: 'O cliente baixa o MT4 ou MT5 no site da Vantage ou diretamente:', list: ['Windows: instalador oficial no site', 'Mac: precisa usar Wine ou Parallels (não há versão nativa)', 'Mobile: App Store / Google Play, buscar "MetaTrader" oficial da MetaQuotes'] },
+        { title: 'Abrir a plataforma', content: 'Depois de instalado, abrir o programa normalmente.' },
+        { title: 'Acessar Login to Trade Account', content: 'No MT4/MT5 desktop:', list: ['Clicar em "File" no canto superior esquerdo', 'Selecionar "Login to Trade Account"'] },
+        { title: 'Inserir credenciais', content: 'Informações que o cliente vai precisar (todas vêm no e-mail de boas-vindas):', list: ['Login: número da conta', 'Senha: a que ele cadastrou', 'Servidor: selecionar o servidor Vantage correto (informado no e-mail)'] },
+        { title: 'Esqueci a senha', content: 'Se o cliente esqueceu a senha do MT5, é fácil resetar:', list: ['Entrar na área do cliente da Vantage (não no MT5)', 'Em "Minhas Contas", clicar nos 3 pontinhos da conta', 'Escolher "Alterar senha do trader"', 'Nova senha temporária chega por e-mail'] }
+      ]
+    },
+
+    'automacao-robos': {
+      icon: '🤖',
+      title: 'Automação e robôs: o que pode e o que não pode',
+      category: 'plataformas',
+      duration: '4 min',
+      tag: 'Avançado',
+      intro: 'A Vantage <strong>aceita robôs e EAs</strong>, sem tempo mínimo de operação. Mas existem regras importantes para evitar bloqueio da conta.',
+      steps: [
+        { title: 'Robôs são permitidos', content: 'Sim, a Vantage aceita Expert Advisors (EAs), scripts e qualquer tipo de automação no MT4 e MT5.' },
+        { title: 'Sem tempo mínimo de operação', content: 'Diferente de algumas corretoras, a Vantage <strong>não exige tempo mínimo</strong> de abertura/fechamento de operação. Scalping é permitido.' },
+        { title: 'O que NÃO é permitido', content: '<strong>Alta frequência (HFT) é PROIBIDA.</strong> Robôs que fazem milhares de operações por segundo, ou que exploram latência/arbitragem de feed, podem disparar bloqueio.', warning: 'Sinais de alerta: cliente perguntando excessivamente sobre tempo mínimo, latência do servidor, ou tentando otimizar para ultra-baixa latência. Isso indica HFT.' },
+        { title: 'Recomendação para clientes novos com robô', content: 'Sempre orientar o cliente a testar com valor pequeno (USD 100 a 500) antes de escalar. Algumas estratégias funcionam em corretora X e quebram em ambiente real Vantage. Melhor descobrir com pouco capital.', note: 'Quando o cliente faz teste pequeno e a estratégia se comporta bem, dá tranquilidade para ele depositar mais. Isso protege o cliente, o IB e a corretora.' }
+      ]
+    },
+
+    'copy-trading-cliente': {
+      icon: '📋',
+      title: 'Copy Trading: como o cliente começa',
+      category: 'plataformas',
+      duration: '3 min',
+      tag: 'Popular',
+      intro: 'O Copy Trading da Vantage é um dos diferenciais — permite que o cliente replique automaticamente as operações de traders selecionados.',
+      steps: [
+        { title: 'Cadastro em 3 passos', content: 'O cliente faz:', list: ['Preenche dados pessoais', 'Seleciona "Copy Trading" como tipo de conta', 'Envia documento + comprovante de residência'] },
+        { title: 'Mínimo para copiar', content: 'A partir de <strong>USD 50</strong>. Esse é o piso baixo da Vantage, abaixo da maioria dos concorrentes.' },
+        { title: 'O que tem disponível', content: 'O cliente tem acesso a:', list: ['Mais de 69.000 traders para escolher', 'Modo de cópia flexível por perfil de risco', 'Replicação automática em tempo real', 'Ranking interno com performance histórica'] },
+        { title: 'Para o cliente ser COPIADO (provedor)', content: 'Se o cliente quer ser provedor de sinal:', list: ['Até 50% de taxa de performance', 'Conecta MT4 e MT5 facilmente', 'Pode criar estratégias ilimitadas', 'Estratégia exposta para os 5M+ usuários da Vantage'] }
+      ]
+    },
+
+    // ===== SOBRE A VANTAGE =====
+    'quem-somos': {
+      icon: '🌐',
+      title: 'Quem é a Vantage — apresentação institucional',
+      category: 'vantage',
+      duration: '4 min',
+      tag: 'Essencial',
+      intro: 'Os números e diferenciais oficiais da Vantage para você usar em conversas com novos clientes e parceiros.',
+      steps: [
+        { title: 'Fundação e tempo de mercado', content: 'Fundada em 2009 em Sydney (Austrália). <strong>Mais de 15 anos de mercado</strong>, classificada como corretora global líder em CFDs.' },
+        { title: 'Números atuais', content: 'Volume e alcance:', list: ['<strong>5 milhões+ de usuários registrados</strong>', '<strong>172 países atendidos</strong>', '<strong>$1,5 trilhão de volume mensal</strong> (USD)', '30+ escritórios pelo mundo', '1.000+ colaboradores', 'Avaliação 4,3 estrelas no Trustpilot'] },
+        { title: 'LATAM', content: 'Atendimento em 18 países da América Latina, com suporte localizado e métodos de pagamento adaptados a cada jurisdição. Brasil tem PIX 24/7.' },
+        { title: 'Programa IB (Vantage Partners)', content: 'Em números:', list: ['<strong>20k+ comunidade de IBs e afiliados</strong>', '<strong>US$ 10M+ pagamentos mensais</strong> para parceiros', '<strong>US$ 200 bilhões de volume mensal</strong> negociado'] },
+        { title: 'Tagline e posicionamento', content: '"<em>Trade Smarter. Trade Vantage.</em>" — Corretora global líder em CFDs, com mais de 1.000 produtos e foco em experiência premium para traders de todos os níveis.' }
+      ]
+    },
+
+    'tipos-conta': {
+      icon: '🗂️',
+      title: 'Tipos de conta — qual indicar',
+      category: 'vantage',
+      duration: '4 min',
+      tag: 'Essencial',
+      intro: 'A Vantage tem várias modalidades de conta para diferentes perfis. Indicar a conta certa é parte do trabalho do IB.',
+      steps: [
+        { title: 'Standard STP (iniciantes)', content: 'Acesso simples e direto ao mercado. <strong>Sem comissão por operação</strong>, spread integrado a partir de 1.0 pip. Recomendada para quem está começando.' },
+        { title: 'RAW ECN (experientes)', content: 'Liquidez profunda institucional. <strong>Spreads a partir de 0.0 pip</strong> + comissão fixa (USD 3 por lote por lado). Melhor para scalpers e quem opera alto volume.' },
+        { title: 'Pro ECN (profissionais)', content: 'Conta para alto volume. Spreads como o RAW, mas com comissão menor (USD 1.50 por lote por lado). Exige depósito mínimo maior.' },
+        { title: 'Cent', content: 'Conta em centavos — ideal para quem quer testar estratégia com valor real bem baixo. Mesmo spread do Standard.' },
+        { title: 'Swap-Free', content: 'Para clientes que seguem Shariah (sem juros overnight). Substituído por taxa de administração equivalente.' },
+        { title: 'Como indicar', content: 'Pergunte ao cliente:', list: ['Já operou antes? → iniciante = Standard | experiente = RAW', 'Vai fazer scalping/HFT? → RAW (mas atenção: HFT não é permitido)', 'Quer testar com pouco? → Cent', 'É muçulmano e prefere sem swap? → Swap-Free'] }
+      ]
+    },
+
+    'seguranca-fundos': {
+      icon: '🛡️',
+      title: 'Como a Vantage protege os fundos do cliente',
+      category: 'vantage',
+      duration: '3 min',
+      tag: 'Importante',
+      intro: 'Três camadas de proteção sobre o capital do cliente — argumento forte na conversão.',
+      steps: [
+        { title: 'Camada 1: Contas segregadas', content: 'Fundos dos clientes ficam em contas fiduciárias <strong>segregadas</strong> do capital operacional da Vantage. Em bancos AA-rated, consistentemente entre os 20 mais seguros do mundo. Auditadas periodicamente.' },
+        { title: 'Camada 2: Seguro Lloyd\'s of London', content: 'Em parceria com a <strong>Willis Towers Watson</strong>, seguro Excess of Loss com:', list: ['Cobertura agregada de <strong>USD 50 milhões</strong>', 'Até <strong>USD 1 milhão por conta</strong>', 'Sem custo adicional para o cliente', 'Subscrito por ARCH 2012 at Lloyd\'s'] },
+        { title: 'Camada 3: Financial Commission', content: 'Membro oficial da <strong>Financial Commission</strong>, órgão independente para resolução de disputas em Forex e CFDs. Compensation Fund de <strong>€20.000 por cliente</strong>.' },
+        { title: 'Use isso na conversa com cliente', content: 'Quando o cliente pergunta "é seguro?", você tem 3 camadas concretas para mostrar — não é discurso, são proteções financeiras com valores e instituições nomeadas. Isso converte clientes em dúvida.' }
+      ]
+    },
+
+    'regulamentacao': {
+      icon: '⚖️',
+      title: 'Regulamentações da Vantage',
+      category: 'vantage',
+      duration: '3 min',
+      tag: 'Importante',
+      intro: 'A Vantage é regulamentada em <strong>5 jurisdições diferentes</strong>, cada uma por uma autoridade reconhecida internacionalmente.',
+      steps: [
+        { title: 'ASIC (Austrália)', content: 'Entidade: Vantage Global Prime Pty Ltd<br>Licença: AFSL 428901' },
+        { title: 'FCA (Reino Unido)', content: 'Entidade: Vantage Global Prime LLP<br>Licença: FRN 590299' },
+        { title: 'CIMA (Ilhas Cayman)', content: 'Entidade: Vantage International Group Ltd<br>Licença: SIBL 1383491' },
+        { title: 'FSCA (África do Sul)', content: 'Entidade: Vantage Markets (Pty) Ltd<br>Licença: FSP 51268' },
+        { title: 'VFSC (Vanuatu)', content: 'Entidade: Vantage Global Limited<br>Registro: 700271' },
+        { title: 'O que isso significa na prática', content: 'Cada cliente é cadastrado sob a entidade regulatória correspondente à sua jurisdição. Para clientes do Brasil/LATAM, geralmente a entidade da VFSC. Cada licença tem suas regras específicas e auditorias independentes.', note: 'Quando o cliente pergunta "é regulamentada no Brasil?", a resposta honesta é: a Vantage não tem registro na CVM, mas opera legalmente no Brasil sob a regulamentação internacional (VFSC). Cliente brasileiro é cadastrado sob essa entidade.' }
+      ]
+    }
+
+  };
+
+  // ============== CONSTRUIR SIDEBAR DINÂMICA ==============
+  function buildSidebar(activeItemKey) {
+    const cats = Object.entries(categories).map(([key, c]) =>
+      `<button class="sidebar-item ${activeItemKey === 'cat-' + key ? 'active' : ''}" data-cat="${key}" onclick="openCategory('${key}')"><span class="icon">${c.icon}</span> ${c.title}</button>`
+    ).join('');
+
+    return `
+      <button class="sidebar-logo" onclick="goTo('dashboard')">
+        <div class="logo-mark">
+          <svg viewBox="0 0 100 100" fill="none">
+            <path d="M20 15 L50 75 L80 15 L65 15 L50 45 L35 15 Z" fill="white"/>
+            <path d="M35 15 L65 15 L50 45 Z" fill="#ff5722"/>
+          </svg>
+        </div>
+        <span>vantage</span>
+      </button>
+      <div style="padding: 0 0.5rem 0 2.6rem;"><span class="portal-badge">PORTAL IB</span></div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Navegação</div>
+        <button class="sidebar-item ${activeItemKey === 'home' ? 'active' : ''}" onclick="goTo('dashboard')"><span class="icon">🏠</span> Início</button>
+        <button class="sidebar-item ${activeItemKey === 'library' ? 'active' : ''}" onclick="goTo('library')"><span class="icon">📚</span> Biblioteca</button>
+        <button class="sidebar-item ${activeItemKey === 'faq' ? 'active' : ''}" onclick="goTo('faq')"><span class="icon">❓</span> FAQ</button>
+        <button class="sidebar-item ${activeItemKey === 'docs' ? 'active' : ''}" onclick="goTo('docs')"><span class="icon">📄</span> Documentos</button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Categorias</div>
+        ${cats}
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="user-avatar">IB</div>
+          <div class="user-info">
+            <div class="user-name">Parceiro IB</div>
+            <div class="user-role">Introducing Broker</div>
+          </div>
+        </div>
+        <button class="logout" onclick="doLogout()">↩  Sair</button>
+      </div>
+    `;
+  }
+
+  // ============== NAVEGAÇÃO ENTRE TELAS ==============
+  function goTo(screen) {
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.remove('active');
+      s.style.display = 'none';
+    });
+    const target = document.getElementById('screen-' + screen);
+    target.classList.add('active');
+    if (screen === 'login') {
+      target.style.display = 'flex';
+    } else {
+      target.style.display = target.classList.contains('flex') ? 'flex' : 'block';
+    }
+    window.scrollTo(0, 0);
+
+    // Constrói conteúdo da tela alvo
+    if (screen === 'library') { buildLibrary(); }
+    else if (screen === 'faq') { buildFaq(); }
+    else if (screen === 'docs') { buildDocs(); }
+  }
+
+  // ============== BUSCA GLOBAL (tutoriais + FAQ) ==============
+  let currentSearchInput = null;
+
+  function handleSearch(inputEl) {
+    const q = inputEl.value.trim().toLowerCase();
+    const panel = inputEl.parentElement.querySelector('.search-results-panel');
+    currentSearchInput = inputEl;
+
+    if (!q) { panel.classList.remove('active'); return; }
+
+    // Buscar em tutoriais (título, intro, conteúdo dos passos, tag, categoria)
+    const tutHits = [];
+    Object.entries(tutorials).forEach(([id, t]) => {
+      const haystack = (
+        t.title + ' ' + t.intro + ' ' + t.tag + ' ' +
+        (t.steps || []).map(s => (s.title || '') + ' ' + (s.content || '') + ' ' + (s.note || '') + ' ' + (s.warning || '') + ' ' + ((s.list || []).join(' '))).join(' ') +
+        ' ' + categories[t.category].title
+      ).toLowerCase();
+      if (haystack.includes(q)) {
+        tutHits.push({ id, t });
+      }
+    });
+
+    // Buscar em FAQ
+    const faqHits = [];
+    faqData.forEach((f, idx) => {
+      const haystack = (f.question + ' ' + f.answer + ' ' + (f.section || '')).toLowerCase();
+      if (haystack.includes(q)) {
+        faqHits.push({ idx, f });
+      }
+    });
+
+    const total = tutHits.length + faqHits.length;
+
+    if (total === 0) {
+      panel.innerHTML = `<div class="search-no-results">Nada encontrado para "<strong>${escapeHtml(q)}</strong>".<br><br>Tente palavras-chave como: <em>saque, KYC, transferência, bônus, MT5</em>.</div>`;
+      panel.classList.add('active');
+      return;
+    }
+
+    let html = `<div class="search-results-header"><span>${total}</span> ${total === 1 ? 'resultado' : 'resultados'} para "${escapeHtml(q)}"</div>`;
+
+    tutHits.slice(0, 8).forEach(({ id, t }) => {
+      const cat = categories[t.category];
+      html += `
+        <button class="search-result-item" onclick="closeSearch(currentSearchInput); openTutorial('${id}');">
+          <div class="search-result-icon">${t.icon}</div>
+          <div class="search-result-content">
+            <div class="search-result-title">${highlight(t.title, q)}</div>
+            <div class="search-result-meta">${cat.title} · ${t.duration}</div>
+          </div>
+          <span class="search-result-type">Tutorial</span>
+        </button>
+      `;
+    });
+
+    faqHits.slice(0, 8).forEach(({ idx, f }) => {
+      html += `
+        <button class="search-result-item" onclick="closeSearch(currentSearchInput); goTo('faq'); setTimeout(()=>openFaqByIndex(${idx}), 100);">
+          <div class="search-result-icon">❓</div>
+          <div class="search-result-content">
+            <div class="search-result-title">${highlight(f.question, q)}</div>
+            <div class="search-result-meta">${f.section || 'FAQ'}</div>
+          </div>
+          <span class="search-result-type faq">FAQ</span>
+        </button>
+      `;
+    });
+
+    panel.innerHTML = html;
+    panel.classList.add('active');
+  }
+
+  function closeSearch(inputEl) {
+    if (!inputEl) return;
+    const panel = inputEl.parentElement.querySelector('.search-results-panel');
+    if (panel) panel.classList.remove('active');
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
+  }
+
+  function highlight(text, q) {
+    if (!q) return escapeHtml(text);
+    const safe = escapeHtml(text);
+    const safeQ = escapeHtml(q);
+    const re = new RegExp('(' + safeQ.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    return safe.replace(re, '<strong style="color:var(--orange-bright)">$1</strong>');
+  }
+
+  // ============== BIBLIOTECA ==============
+  let currentLibraryFilter = 'todas';
+
+  function buildLibrary() {
+    document.getElementById('sidebarLibrary').innerHTML = buildSidebar('library');
+
+    // Filtros
+    const filtersEl = document.getElementById('libraryFilters');
+    const filters = [['todas', 'Todas']].concat(Object.entries(categories).map(([k, c]) => [k, c.title]));
+    filtersEl.innerHTML = filters.map(([k, label]) =>
+      `<button class="filter-chip ${currentLibraryFilter === k ? 'active' : ''}" onclick="filterLibrary('${k}')">${label}</button>`
+    ).join('');
+
+    // Lista
+    const listEl = document.getElementById('libraryList');
+    const allTuts = Object.entries(tutorials);
+    const filtered = currentLibraryFilter === 'todas'
+      ? allTuts
+      : allTuts.filter(([_, t]) => t.category === currentLibraryFilter);
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div class="empty-section"><h3>Nenhum tutorial nessa categoria</h3><p>Tente outro filtro.</p></div>';
+      return;
+    }
+
+    listEl.innerHTML = filtered.map(([id, t]) => {
+      const cat = categories[t.category];
+      return `
+        <button class="tutorial-item" onclick="openTutorial('${id}')">
+          <div class="tutorial-icon">${t.icon}</div>
+          <div class="tutorial-info">
+            <div class="tutorial-title">${t.title}</div>
+            <div class="tutorial-meta">${t.duration} · ${cat.title}</div>
+          </div>
+          <span class="tutorial-tag">${t.tag}</span>
+          <span class="tutorial-arrow">→</span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  function filterLibrary(filter) {
+    currentLibraryFilter = filter;
+    buildLibrary();
+  }
+
+  // ============== FAQ ==============
+  const faqData = [
+    {
+      section: 'Cadastro e clientes',
+      question: 'Por que o cliente que se cadastrou pelo meu link não aparece no meu dashboard?',
+      answer: '<strong>Causa mais comum:</strong> ele ainda não finalizou o KYC. Sem KYC completo, a conta fica como "lead" e não aparece como cliente.<br><br>Outras causas possíveis:<ul><li>Delay natural após verificação (algumas horas)</li><li>Você não fez logout/login depois da atualização</li><li>O cliente usou um e-mail diferente do que pensa</li><li>Foi cadastrado abaixo de outro IB sem perceber</li></ul>',
+      related: { type: 'tut', id: 'cliente-nao-aparece' }
+    },
+    {
+      section: 'Cadastro e clientes',
+      question: 'O cliente disse que o contrato apareceu como assinado, mas ele não lembra de ter assinado',
+      answer: 'O contrato de IB aparece como <strong>pop-up</strong> assim que o parceiro entra na área de cliente pela primeira vez. Muitos clicam "aceitar" sem perceber que era o contrato (parece um aviso comum).<br><br>O status "assinado" no sistema = aceito/confirmado eletronicamente. Não significa que foi assinado manualmente.<br><br>Para conferir os termos, o parceiro deve <strong>baixar o PDF</strong> pela área de IB.',
+      related: { type: 'tut', id: 'baixar-contrato' }
+    },
+    {
+      section: 'Cadastro e clientes',
+      question: 'Cliente quer transferir gestão pra mim — como faz?',
+      answer: 'Depende do caso. Existem 3 cenários distintos:<ul><li><strong>Cliente comum (sem BDM atual):</strong> envia e-mail simples ao BDM Vantage pedindo transferência</li><li><strong>Cliente já sob outro BDM:</strong> precisa enviar e-mail para suporte + gerente atual ao mesmo tempo, depois encaminhar pro seu BDM</li><li><strong>Cliente já é IB:</strong> texto do e-mail é diferente (menciona transferência de IB), mas o fluxo é o mesmo do caso anterior</li></ul>Conta antiga em regulamentação descontinuada pode não ter opção de transferência — nesse caso, criar conta nova pelo seu link.',
+      related: { type: 'cat', id: 'transferencia' }
+    },
+
+    {
+      section: 'Depósito e saque',
+      question: 'Quanto tempo leva pra cair um saque?',
+      answer: '<strong>Aprovação interna:</strong> rápida.<br><strong>Processamento:</strong> entra na janela diária de <strong>21h às 23h (Brasília)</strong>.<br><br>Por método:<ul><li>PIX: cai na mesma janela noturna</li><li>Crypto: cai na janela noturna</li><li>TED: 1-5 dias úteis (depende do banco)</li><li>Cartão: pode levar mais dias para refletir na fatura</li></ul>Se passou de 5h após a janela e não caiu, é hora de abrir chamado.',
+      related: { type: 'tut', id: 'tempo-saque' }
+    },
+    {
+      section: 'Depósito e saque',
+      question: 'Posso depositar de um CPF e sacar pra outro?',
+      answer: '<strong>NÃO.</strong> Política rígida AML da Vantage: o dinheiro entra e sai pelo <strong>mesmo método de pagamento</strong> e no <strong>nome da mesma pessoa</strong>. Sem exceções (nem entre cônjuges).<br><br>Mesmo CPF, mesmo nome, mesma titularidade da conta Vantage.',
+      related: { type: 'tut', id: 'politica-aml' }
+    },
+    {
+      section: 'Depósito e saque',
+      question: 'Depositei em PIX. Posso sacar em crypto?',
+      answer: 'É possível, mas com condição: o cliente precisa <strong>já ter usado ambos os métodos previamente</strong> — pelo menos uma entrada e uma saída em PIX, e o mesmo em crypto.<br><br>A wallet de crypto precisa estar verificada e em nome do titular da conta Vantage. Sacar pra wallet de terceiros é negado.',
+      related: { type: 'tut', id: 'politica-aml' }
+    },
+    {
+      section: 'Depósito e saque',
+      question: 'Qual o depósito mínimo na Vantage?',
+      answer: '<strong>Conta de trading:</strong> USD 5 (menor mínimo do mercado).<br><strong>Para o bônus 100% + 25%:</strong> USD 100 (abaixo disso não é elegível).<br><strong>V-Wallet:</strong> USDT/USDC 50 unidades, BTC 0.0005, ETH 0.0025.',
+      related: { type: 'tut', id: 'deposito-minimo' }
+    },
+    {
+      section: 'Depósito e saque',
+      question: 'Saque foi marcado como bem-sucedido, mas o dinheiro não caiu',
+      answer: '"Bem-sucedido" = Vantage aprovou. A partir daí depende do provedor de pagamento.<br><br><strong>Aguarde a janela 21h-23h passar.</strong> Se já se passaram mais de 5h e não caiu, o cliente precisa enviar por escrito:<ul><li>E-mail da conta</li><li>Número da conta</li><li>Número do pedido (começa com V2)</li><li>Valor e dia/hora</li></ul>Com essas info, o BDM abre chamado com o financeiro pra pegar código de rastreio.',
+      related: { type: 'tut', id: 'saque-nao-caiu' }
+    },
+
+    {
+      section: 'Comissionamento',
+      question: 'Quando recebo minha comissão?',
+      answer: 'As comissões são pagas <strong>uma vez por dia</strong>, na janela <strong>21h-23h (Brasília)</strong>. O comissionamento atualiza no seu dashboard em tempo real durante o dia, mas o valor só "vira" saldo na sua conta à noite.',
+      related: { type: 'tut', id: 'quando-recebe' }
+    },
+    {
+      section: 'Comissionamento',
+      question: 'Como funciona o rebate em índices? É diferente de Forex?',
+      answer: 'Sim. Em Forex e ouro o rebate é fixo por lote. Em índices, é calculado pelo <strong>valor do ativo × lotes</strong>, similar a crypto.<br><br><strong>Fórmula:</strong> Rebate = (valor do ativo × lotes / 1.000.000) × rebate definido.<br><br>Exemplo HK50 ($25.850), 2 lotes, $50/milhão: (51.700/1.000.000) × 50 = <strong>$2,58 USD</strong>.',
+      related: { type: 'tut', id: 'calculo-indices' }
+    },
+    {
+      section: 'Comissionamento',
+      question: 'O IB recebe swap?',
+      answer: 'Sim. O IB <strong>recebe ou paga</strong> swap dependendo da direção da operação dos clientes. Por exemplo, no EUR/USD: clientes em venda geram swap positivo (você recebe), em compra geram swap negativo (você paga).',
+      related: { type: 'tut', id: 'swap' }
+    },
+    {
+      section: 'Comissionamento',
+      question: 'A Vantage trabalha com CPA?',
+      answer: 'Sim, mas é modelo específico para empresas que trabalham com tráfego pago em escala. Para perfil de comunidade/influenciador, o modelo IB tradicional é mais recomendado — pessoa física tende a se frustrar com a complexidade do CPA.',
+      related: { type: 'tut', id: 'cpa-vs-ib' }
+    },
+
+    {
+      section: 'Promoções e bônus',
+      question: 'Como o cliente ativa o bônus de 100% + 25%?',
+      answer: '<strong>O bônus NÃO é automático.</strong> O cliente precisa:<ul><li>Entrar no Portal do Cliente ou Vantage App</li><li>Ir na aba de Promoções</li><li>Se inscrever na promoção 100% + 25%</li><li>Fazer depósito mínimo de USD 100</li></ul>Se depositar antes de se inscrever, não recebe bônus daquele depósito.',
+      related: { type: 'tut', id: 'como-inscrever-bonus' }
+    },
+    {
+      section: 'Promoções e bônus',
+      question: 'O bônus do depósito é sacável?',
+      answer: '<strong>O crédito em si não é sacável.</strong> Mas os lucros gerados a partir dele são. Se o cliente saca parte do depósito, parte proporcional do crédito é deduzida.<br><br>Transferência interna (incluindo Copy Trading) também é tratada como saque para cálculo de desconto do bônus.',
+      related: { type: 'tut', id: 'bonus-100-25' }
+    },
+    {
+      section: 'Promoções e bônus',
+      question: 'Quem NÃO pode participar do bônus?',
+      answer: 'Restrições oficiais:<ul><li>Contas USDT, BTC e ETH (não elegíveis)</li><li>Clientes indicados por PAMM/MAM (gestor de fundos)</li><li>Quem faz "churning" — abrir/fechar só pra usar a margem do bônus</li><li>Quem faz hedge entre contas</li><li>Quem fornece informação falsa</li></ul>',
+      related: { type: 'tut', id: 'desqualificacao-bonus' }
+    },
+
+    {
+      section: 'Plataformas',
+      question: 'A Vantage aceita robôs (EAs)?',
+      answer: 'Sim, aceita robôs e EAs no MT4/MT5, <strong>sem tempo mínimo de operação</strong>.<br><br><strong>Atenção:</strong> automação de <strong>alta frequência (HFT) é PROIBIDA</strong>. Robôs que fazem milhares de operações por segundo, ou que exploram latência/arbitragem, podem disparar bloqueio.<br><br>Recomendação: testar com USD 100-500 antes de escalar.',
+      related: { type: 'tut', id: 'automacao-robos' }
+    },
+    {
+      section: 'Plataformas',
+      question: 'Quais plataformas a Vantage oferece?',
+      answer: '6 opções:<ul><li><strong>App Vantage</strong> (iOS/Android, Copy Trading integrado)</li><li><strong>MT4 e MT5</strong> (padrão da indústria)</li><li><strong>TradingView</strong> (integração nativa)</li><li><strong>WebTrader</strong> (MT4/MT5 no navegador)</li><li><strong>Vantage WebTrading</strong> (proprietária)</li><li><strong>Copy Trading</strong> (mínimo USD 50)</li></ul>',
+      related: { type: 'tut', id: 'plataformas-disponiveis' }
+    },
+    {
+      section: 'Plataformas',
+      question: 'Cliente esqueceu a senha do MT5. O que fazer?',
+      answer: 'Procedimento:<ul><li>Cliente entra na área de cliente da Vantage (não no MT5)</li><li>Em "Minhas Contas", clica nos 3 pontinhos da conta</li><li>Escolhe "Alterar senha do trader"</li><li>Nova senha temporária chega por e-mail</li><li>Após login no MT5, alterar pra senha definitiva</li></ul>',
+      related: { type: 'tut', id: 'mt5-acesso' }
+    },
+
+    {
+      section: 'Vantage',
+      question: 'A Vantage é regulamentada no Brasil?',
+      answer: 'A Vantage <strong>não tem registro na CVM</strong>, mas opera legalmente no Brasil sob regulamentação internacional (principalmente VFSC de Vanuatu para LATAM).<br><br>É regulamentada em 5 jurisdições: ASIC (Austrália), FCA (Reino Unido), CIMA (Cayman), FSCA (África do Sul), VFSC (Vanuatu). Cliente brasileiro é cadastrado sob a entidade VFSC.',
+      related: { type: 'tut', id: 'regulamentacao' }
+    },
+    {
+      section: 'Vantage',
+      question: 'Como a Vantage protege os fundos do cliente?',
+      answer: 'Três camadas:<ul><li><strong>Contas segregadas</strong> em bancos AA-rated (top 20 mundial)</li><li><strong>Seguro Lloyd\'s of London</strong> — USD 50M de cobertura agregada, até USD 1M por conta</li><li><strong>Financial Commission</strong> — Compensation Fund de €20.000 por cliente</li></ul>',
+      related: { type: 'tut', id: 'seguranca-fundos' }
+    },
+    {
+      section: 'Vantage',
+      question: 'Quantos clientes/parceiros a Vantage tem?',
+      answer: '<strong>5 milhões+ usuários registrados</strong> em 172 países.<br><br>Programa IB (Vantage Partners):<ul><li>20k+ IBs e afiliados na comunidade</li><li>US$ 10M+ em pagamentos mensais a parceiros</li><li>US$ 200B de volume mensal negociado</li><li>$1,5 trilhão de volume mensal total</li></ul>',
+      related: { type: 'tut', id: 'quem-somos' }
+    },
+    {
+      section: 'Vantage',
+      question: 'Qual a diferença entre Standard STP, RAW ECN e Pro ECN?',
+      answer: '<ul><li><strong>Standard STP:</strong> sem comissão, spread integrado a partir de 1.0 pip. Indicada pra iniciantes.</li><li><strong>RAW ECN:</strong> spread a partir de 0.0 pip + comissão fixa (USD 3 por lote por lado). Pra experientes/scalpers.</li><li><strong>Pro ECN:</strong> mesmo spread do RAW, comissão menor (USD 1,50 por lote por lado). Pra alto volume profissional, exige depósito maior.</li></ul>',
+      related: { type: 'tut', id: 'tipos-conta' }
+    }
+  ];
+
+  function buildFaq(searchFilter = '') {
+    document.getElementById('sidebarFaq').innerHTML = buildSidebar('faq');
+
+    const sections = {};
+    faqData.forEach((f, idx) => {
+      if (!sections[f.section]) sections[f.section] = [];
+      sections[f.section].push({ ...f, originalIdx: idx });
+    });
+
+    let html = '';
+    Object.entries(sections).forEach(([section, items]) => {
+      html += `<div class="faq-section-title">${section}</div>`;
+      html += '<div class="faq-list">';
+      items.forEach(item => {
+        let relatedHtml = '';
+        if (item.related) {
+          if (item.related.type === 'tut') {
+            relatedHtml = `<div class="faq-related">📖 Veja o tutorial completo: <a onclick="openTutorial('${item.related.id}')">${tutorials[item.related.id]?.title || 'Tutorial'}</a></div>`;
+          } else if (item.related.type === 'cat') {
+            relatedHtml = `<div class="faq-related">📂 Categoria relacionada: <a onclick="openCategory('${item.related.id}')">${categories[item.related.id]?.title || 'Categoria'}</a></div>`;
+          }
+        }
+        html += `
+          <div class="faq-item" data-faq-idx="${item.originalIdx}">
+            <button class="faq-question" onclick="toggleFaq(this)">
+              <span>${item.question}</span>
+              <span class="faq-toggle">+</span>
+            </button>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                ${item.answer}
+                ${relatedHtml}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+    });
+
+    document.getElementById('faqContent').innerHTML = html;
+  }
+
+  function toggleFaq(btn) {
+    btn.parentElement.classList.toggle('open');
+  }
+
+  function openFaqByIndex(idx) {
+    const el = document.querySelector(`.faq-item[data-faq-idx="${idx}"]`);
+    if (el) {
+      el.classList.add('open');
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  // ============== DOCUMENTOS ==============
+  function buildDocs() {
+    document.getElementById('sidebarDocs').innerHTML = buildSidebar('docs');
+
+    // Contratuais
+    document.getElementById('docsContractual').innerHTML = `
+      <button class="doc-card" onclick="openTutorial('baixar-contrato')">
+        <div class="doc-card-header">
+          <div class="doc-card-icon">📜</div>
+          <div>
+            <div class="doc-card-type">Tutorial</div>
+            <h3>Acordo IB</h3>
+          </div>
+        </div>
+        <p>Como encontrar e baixar o contrato de IB no seu dashboard.</p>
+        <span class="doc-card-action">Ver passo a passo →</span>
+      </button>
+      <button class="doc-card" onclick="openCategory('transferencia')">
+        <div class="doc-card-header">
+          <div class="doc-card-icon">🔄</div>
+          <div>
+            <div class="doc-card-type">Modelos de e-mail</div>
+            <h3>Solicitações de transferência</h3>
+          </div>
+        </div>
+        <p>Templates prontos para os 3 cenários de transferência de gestão.</p>
+        <span class="doc-card-action">Ver templates →</span>
+      </button>
+    `;
+
+    // Termos
+    document.getElementById('docsTermos').innerHTML = `
+      <button class="doc-card" onclick="openTutorial('bonus-100-25')">
+        <div class="doc-card-header">
+          <div class="doc-card-icon">🎁</div>
+          <div>
+            <div class="doc-card-type">Termos da promoção</div>
+            <h3>Bônus 100% + 25%</h3>
+          </div>
+        </div>
+        <p>Regras completas, exemplos de cálculo e condições de saque do bônus.</p>
+        <span class="doc-card-action">Ler regras →</span>
+      </button>
+      <button class="doc-card" onclick="openTutorial('desqualificacao-bonus')">
+        <div class="doc-card-header">
+          <div class="doc-card-icon">⚠️</div>
+          <div>
+            <div class="doc-card-type">Termos da promoção</div>
+            <h3>Causas de desqualificação</h3>
+          </div>
+        </div>
+        <p>O que pode tirar o cliente do bônus: churning, hedge, e outros.</p>
+        <span class="doc-card-action">Ver causas →</span>
+      </button>
+      <button class="doc-card" onclick="openTutorial('politica-aml')">
+        <div class="doc-card-header">
+          <div class="doc-card-icon">🔒</div>
+          <div>
+            <div class="doc-card-type">Política</div>
+            <h3>AML — Prevenção à lavagem</h3>
+          </div>
+        </div>
+        <p>Regras de depósito e saque, titularidade e movimentação de fundos.</p>
+        <span class="doc-card-action">Ler política →</span>
+      </button>
+    `;
+
+    // Marketing e externos
+    document.getElementById('docsMarketing').innerHTML = `
+      <a class="doc-card" href="https://partners.vantagemarkets.com/pt-br/ib-marketing-tools/" target="_blank">
+        <div class="doc-card-header">
+          <div class="doc-card-icon">🎨</div>
+          <div>
+            <div class="doc-card-type">Link externo</div>
+            <h3>IB Marketing Tools</h3>
+          </div>
+        </div>
+        <p>Portal oficial Vantage com logos, banners e materiais multilíngues.</p>
+        <span class="doc-card-action">Abrir portal ↗</span>
+      </a>
+      <a class="doc-card" href="https://latam.vantagemarkets.com/pt/promotions/" target="_blank">
+        <div class="doc-card-header">
+          <div class="doc-card-icon">📢</div>
+          <div>
+            <div class="doc-card-type">Link externo</div>
+            <h3>Promoções vigentes</h3>
+          </div>
+        </div>
+        <p>Página oficial com todas as promoções ativas (atualizada mensalmente).</p>
+        <span class="doc-card-action">Ver promoções ↗</span>
+      </a>
+      <a class="doc-card" href="https://latam.vantagehelpcenter.com/" target="_blank">
+        <div class="doc-card-header">
+          <div class="doc-card-icon">🏢</div>
+          <div>
+            <div class="doc-card-type">Link externo</div>
+            <h3>Central de Ajuda Vantage</h3>
+          </div>
+        </div>
+        <p>Suporte oficial da Vantage para LATAM, em português.</p>
+        <span class="doc-card-action">Acessar central ↗</span>
+      </a>
+    `;
+  }
+
+  // ============== DASHBOARD ==============
+  function buildDashboard() {
+    // Total de tutoriais
+    document.querySelector('#totalTutoriais span').textContent = Object.keys(tutorials).length;
+
+    // Categorias
+    const grid = document.getElementById('categoriesGrid');
+    grid.innerHTML = Object.entries(categories).map(([key, c]) => `
+      <button class="category-card" onclick="openCategory('${key}')">
+        <div class="category-icon">${c.icon}</div>
+        <h3>${c.title}</h3>
+        <p>${c.subtitle}</p>
+        <div class="category-count">${c.tutorials.length} tutoriais →</div>
+      </button>
+    `).join('');
+
+    // Populares (selecionados manualmente entre os mais relevantes)
+    const populares = ['abrir-conta', 'transferencia-cliente', 'bonus-100-25', 'tempo-saque', 'cliente-nao-aparece', 'kyc-docs'];
+    const list = document.getElementById('popularTutorials');
+    list.innerHTML = populares.map(tutId => {
+      const tut = tutorials[tutId];
+      const cat = categories[tut.category];
+      return `
+        <button class="tutorial-item" onclick="openTutorial('${tutId}')">
+          <div class="tutorial-icon">${tut.icon}</div>
+          <div class="tutorial-info">
+            <div class="tutorial-title">${tut.title}</div>
+            <div class="tutorial-meta">${tut.duration} · ${cat.title}</div>
+          </div>
+          <span class="tutorial-tag">${tut.tag}</span>
+          <span class="tutorial-arrow">→</span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  // ============== ABRIR CATEGORIA ==============
+  function openCategory(catId) {
+    const cat = categories[catId];
+    if (!cat) return;
+
+    document.getElementById('sidebarCategory').innerHTML = buildSidebar('cat-' + catId);
+
+    document.getElementById('categoryTitle').textContent = cat.title;
+    document.getElementById('categorySubtitle').textContent = cat.subtitle;
+    document.getElementById('categoryBreadcrumb').textContent = cat.title;
+
+    const list = document.getElementById('categoryTutorialList');
+    list.innerHTML = cat.tutorials.map(tutId => {
+      const tut = tutorials[tutId];
+      if (!tut) return '';
+      return `
+        <button class="tutorial-item" onclick="openTutorial('${tutId}')">
+          <div class="tutorial-icon">${tut.icon}</div>
+          <div class="tutorial-info">
+            <div class="tutorial-title">${tut.title}</div>
+            <div class="tutorial-meta">${tut.duration} · ${cat.title}</div>
+          </div>
+          <span class="tutorial-tag">${tut.tag}</span>
+          <span class="tutorial-arrow">→</span>
+        </button>
+      `;
+    }).join('');
+
+    goTo('category');
+  }
+
+  // ============== ABRIR TUTORIAL ==============
+  function openTutorial(tutId) {
+    const tut = tutorials[tutId];
+    if (!tut) return;
+    const cat = categories[tut.category];
+
+    document.getElementById('sidebarTutorial').innerHTML = buildSidebar('cat-' + tut.category);
+
+    let stepsHtml = '';
+    tut.steps.forEach((step, i) => {
+      let listHtml = '';
+      if (step.list) {
+        listHtml = '<ul>' + step.list.map(item => `<li>${item}</li>`).join('') + '</ul>';
+      }
+      let codeHtml = step.code ? `<div class="email-template">${step.code}</div>` : '';
+      let emailHtml = step.emailTemplate ? `<div class="email-template">${step.emailTemplate}</div>` : '';
+
+      let tableHtml = '';
+      if (step.table) {
+        tableHtml = `<table class="tut-table">
+          <thead><tr>${step.table.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+          <tbody>${step.table.rows.map(row => `<tr>${row.map((c, idx) => `<td${idx === row.length - 1 ? ' class="highlight-cell"' : ''}>${c}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>`;
+      }
+
+      let noteHtml = step.note ? `<div class="step-note"><strong>💡 Importante:</strong> ${step.note}</div>` : '';
+      let warningHtml = step.warning ? `<div class="step-warning"><strong>⚠️ Atenção:</strong> ${step.warning}</div>` : '';
+
+      stepsHtml += `
+        <div class="step-block">
+          <div class="step-block-number">${i + 1}</div>
+          <h3>${step.title}</h3>
+          <p>${step.content}</p>
+          ${codeHtml}
+          ${emailHtml}
+          ${listHtml}
+          ${tableHtml}
+          ${noteHtml}
+          ${warningHtml}
+        </div>
+      `;
+    });
+
+    // Próximo e anterior na mesma categoria
+    const catTutorials = cat.tutorials;
+    const idx = catTutorials.indexOf(tutId);
+    const prev = idx > 0 ? catTutorials[idx - 1] : null;
+    const next = idx < catTutorials.length - 1 ? catTutorials[idx + 1] : null;
+
+    let navHtml = '<div class="tutorial-nav">';
+    if (prev) {
+      navHtml += `<button class="nav-btn" onclick="openTutorial('${prev}')">
+        <span class="label">← Anterior</span>
+        <span class="title">${tutorials[prev].title}</span>
+      </button>`;
+    } else { navHtml += '<div></div>'; }
+    if (next) {
+      navHtml += `<button class="nav-btn" onclick="openTutorial('${next}')" style="text-align:right;">
+        <span class="label">Próximo →</span>
+        <span class="title">${tutorials[next].title}</span>
+      </button>`;
+    } else { navHtml += '<div></div>'; }
+    navHtml += '</div>';
+
+    document.getElementById('tutorialMain').innerHTML = `
+      <div class="page-header">
+        <div class="breadcrumb">
+          <button onclick="goTo('dashboard')">Início</button>
+          <span class="sep">/</span>
+          <button onclick="openCategory('${tut.category}')">${cat.title}</button>
+          <span class="sep">/</span>
+          <span class="current">Tutorial</span>
+        </div>
+        <div class="tutorial-header">
+          <div class="tutorial-header-icon">${tut.icon}</div>
+          <h1>${tut.title}</h1>
+        </div>
+      </div>
+
+      <div class="tutorial-meta-bar">
+        <span class="meta-chip">⏱ ${tut.duration} de leitura</span>
+        <span class="meta-chip">📂 ${cat.title}</span>
+        <span class="meta-chip highlight">${tut.tag}</span>
+      </div>
+
+      <div class="tutorial-content">
+        <div class="tutorial-intro">${tut.intro}</div>
+        ${stepsHtml}
+        ${navHtml}
+      </div>
+    `;
+
+    goTo('tutorial');
+  }
+
+  // ============== INICIALIZAR ==============
+  buildDashboard();
+  // Verifica se já tem sessão ativa — se tiver, vai direto pro dashboard
+  // se não, mostra login
+  checkSession();
 </script>
+
 </body>
 </html>
